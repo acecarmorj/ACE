@@ -470,41 +470,41 @@
     var topArea = summary.topAreas[0];
     document.getElementById('heroArea').textContent = areaLabel;
     document.getElementById('heroHeadline').textContent = summary.totalVisits
-      ? 'Mapa de calor e leitura publica da Coordenacao de Combate as Endemias'
-      : 'Painel publico informativo da Coordenacao de Combate as Endemias';
+      ? 'Mapa de calor e leitura p\u00fablica da Coordena\u00e7\u00e3o de Combate \u00e0s Endemias'
+      : 'Painel p\u00fablico informativo da Coordena\u00e7\u00e3o de Combate \u00e0s Endemias';
     document.getElementById('heroDescription').textContent = summary.totalVisits
-      ? 'O painel mostra um recorte agregado das acoes realizadas no territorio e das areas que merecem maior atencao coletiva.'
-      : 'Mesmo sem registros publicos no periodo selecionado, esta pagina continua orientando a populacao sobre prevencao e cuidado coletivo.';
-    document.getElementById('heroBadgePeriod').textContent = 'Recorte atual: ultimos ' + state.days + ' dias';
+      ? 'O painel mostra um recorte agregado das a\u00e7\u00f5es realizadas no territ\u00f3rio e das \u00e1reas que merecem maior aten\u00e7\u00e3o coletiva.'
+      : 'Mesmo sem registros p\u00fablicos no per\u00edodo selecionado, esta p\u00e1gina continua orientando a popula\u00e7\u00e3o sobre preven\u00e7\u00e3o e cuidado coletivo.';
+    document.getElementById('heroBadgePeriod').textContent = 'Recorte atual: \u00faltimos ' + state.days + ' dias';
     document.getElementById('heroBadgeUpdated').textContent = 'Atualizado em ' + state.fetchedAt;
-    document.getElementById('heroBadgePrivacy').textContent = 'Mapa publico com leitura territorial agregada';
+    document.getElementById('heroBadgePrivacy').textContent = 'Mapa p\u00fablico com leitura territorial agregada';
     document.getElementById('heroPriority').textContent = topArea
-      ? 'Area em maior atencao: ' + utils.titleCase(topArea.area)
-      : 'Sem area critica identificada no recorte atual';
+      ? '\u00c1rea em maior aten\u00e7\u00e3o: ' + utils.titleCase(topArea.area)
+      : 'Sem \u00e1rea cr\u00edtica identificada no recorte atual';
     document.getElementById('heroPriorityText').textContent = topArea
-      ? 'A leitura abaixo ajuda a comunidade a entender as areas com mais sinais de foco e a reforcar a prevencao.'
-      : 'Os dados publicos do periodo nao apontam concentracao relevante de focos.';
+      ? 'A leitura abaixo ajuda a comunidade a entender as \u00e1reas com mais sinais de foco e a refor\u00e7ar a preven\u00e7\u00e3o.'
+      : 'Os dados p\u00fablicos do per\u00edodo n\u00e3o apontam concentra\u00e7\u00e3o relevante de focos.';
     document.getElementById('heroTransparencyText').textContent = summary.totalVisits
       ? 'As informacoes sao exibidas de forma agregada, sem divulgar nome de morador ou endereco individual.'
       : 'Assim que novas visitas forem sincronizadas, o painel passara a refletir as acoes em andamento na cidade.';
-    document.getElementById('lastUpdateText').textContent = 'Ultima leitura publica: ' + state.fetchedAt;
+    document.getElementById('lastUpdateText').textContent = '\u00daltima leitura p\u00fablica: ' + state.fetchedAt;
   }
 
   function renderMetrics(summary) {
     setText('metricVisits', summary.totalVisits);
-    setText('metricVisitsNote', summary.totalVisits ? 'Acoes registradas no periodo selecionado.' : 'Sem visitas sincronizadas neste recorte.');
+    setText('metricVisitsNote', summary.totalVisits ? 'A\u00e7\u00f5es registradas no per\u00edodo selecionado.' : 'Sem visitas sincronizadas neste recorte.');
     setText('metricAreas', summary.monitoredAreas);
-    setText('metricAreasNote', summary.monitoredAreas ? 'Territorios com algum registro publico no recorte.' : 'Aguardando registros publicos de territorio.');
+    setText('metricAreasNote', summary.monitoredAreas ? 'Territ\u00f3rios com algum registro p\u00fablico no recorte.' : 'Aguardando registros p\u00fablicos de territ\u00f3rio.');
     setText('metricAttention', summary.areasWithAttention);
-    setText('metricAttentionNote', summary.areasWithAttention ? 'Areas com sinais de foco ou depositos com foco.' : 'Nenhuma area com sinal relevante no periodo.');
+    setText('metricAttentionNote', summary.areasWithAttention ? '\u00c1reas com sinais de foco ou dep\u00f3sitos com foco.' : 'Nenhuma \u00e1rea com sinal relevante no per\u00edodo.');
     setText('metricDeposits', summary.totalDepositsFocus);
-    setText('metricDepositsNote', 'Depositos com foco confirmados no recorte publico.');
+    setText('metricDepositsNote', 'Dep\u00f3sitos com foco confirmados no recorte p\u00fablico.');
   }
 
   function renderAttentionList(summary) {
     var container = document.getElementById('attentionList');
     if (!summary.topAreas.length) {
-      container.innerHTML = '<div class="empty">Sem sinais publicos suficientes para montar um ranking no periodo escolhido.</div>';
+      container.innerHTML = '<div class="empty">Sem sinais p\u00fablicos suficientes para montar um ranking no per\u00edodo escolhido.</div>';
       return;
     }
 
@@ -515,7 +515,7 @@
       return [
         '<div class="list-item">',
           '<strong>' + escapeHtml(utils.titleCase(item.area)) + '</strong>',
-          '<span>' + escapeHtml(item.visits + ' visita(s), ' + item.focusSignals + ' sinal(is) de foco e ' + item.depositFocus + ' deposito(s) com foco no recorte.') + '</span>',
+          '<span>' + escapeHtml(item.visits + ' visita(s), ' + item.focusSignals + ' sinal(is) de foco e ' + item.depositFocus + ' dep\u00f3sito(s) com foco no recorte.') + '</span>',
           '<div class="progress-row">',
             '<div class="progress-track"><div class="progress-bar" style="width:' + width + '%"></div></div>',
             '<span class="progress-value">' + score.toFixed(1).replace('.', ',') + '</span>',
@@ -528,7 +528,7 @@
   function renderTrend(summary) {
     var container = document.getElementById('trendBars');
     if (!summary.dailySeries.length) {
-      container.innerHTML = '<div class="empty">O grafico aparecerá quando houver visitas publicas sincronizadas no periodo.</div>';
+      container.innerHTML = '<div class="empty">O gr\u00e1fico aparecer\u00e1 quando houver visitas p\u00fablicas sincronizadas no per\u00edodo.</div>';
       return;
     }
     var series = summary.dailySeries.slice(-8);
@@ -590,9 +590,9 @@
         '<strong>' + escapeHtml(utils.titleCase(polygon.folderLabel)) + (polygon.quarterLabel ? ' - ' + escapeHtml(polygon.quarterLabel) : '') + '</strong>'
       ];
       if (score > 0) {
-        popupLines.push('Indice publico de atencao: ' + score.toFixed(1).replace('.', ','));
+        popupLines.push('\u00cdndice p\u00fablico de aten\u00e7\u00e3o: ' + score.toFixed(1).replace('.', ','));
       } else {
-        popupLines.push('Sem sinal publico relevante no recorte atual.');
+        popupLines.push('Sem sinal p\u00fablico relevante no recorte atual.');
       }
       layer.bindPopup(popupLines.join('<br>'));
       state.polygonLayer.addLayer(layer);
@@ -640,8 +640,8 @@
     state.pointLayer.addTo(state.map);
 
     var note = summary.topAreas[0]
-      ? 'Maior atencao atual: ' + utils.titleCase(summary.topAreas[0].area) + '. O mapa usa leitura territorial agregada, sem expor endereco individual.'
-      : 'O mapa esta em modo informativo. Assim que houver registros publicos no periodo, as areas de atencao serao destacadas aqui.';
+      ? 'Maior aten\u00e7\u00e3o atual: ' + utils.titleCase(summary.topAreas[0].area) + '. O mapa usa leitura territorial agregada, sem expor endere\u00e7o individual.'
+      : 'O mapa est\u00e1 em modo informativo. Assim que houver registros p\u00fablicos no per\u00edodo, as \u00e1reas de aten\u00e7\u00e3o ser\u00e3o destacadas aqui.';
     document.getElementById('mapNote').textContent = note;
   }
 
