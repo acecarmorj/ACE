@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="./assets/ace-theme.css">
 </head>
-<body>
+<body class="field-page">
   <div id="loginScreen" class="login-shell">
     <div class="login-card">
       <div class="brand-mark" style="margin:0 auto 14px">🩺</div>
@@ -103,6 +103,19 @@
         <div class="card">
           <h2 class="section-title">Imóvel selecionado</h2>
           <p class="card-note">Use o cadastro para localizar, editar e abrir a visita do imóvel mais próximo.</p>
+          <div class="field" style="margin-bottom:16px">
+            <label for="visitBairroSelect">Bairro da visita</label>
+            <select id="visitBairroSelect">
+              <option value="">Todos os bairros</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:16px">
+            <label for="propertyQuickSelect">Endereço da visita</label>
+            <select id="propertyQuickSelect">
+              <option value="">Selecione um imóvel cadastrado</option>
+            </select>
+            <div class="field-help">A lista prioriza microárea, quarteirão, bairro e proximidade do agente.</div>
+          </div>
           <div id="selectedPropertyCard" class="selected-card">
             <h3>Nenhum imóvel selecionado</h3>
             <p>Abra a aba de imóveis, pesquise o endereço e toque em <strong>Visitar</strong>.</p>
@@ -155,7 +168,8 @@
               <label>Microárea</label>
               <div class="stepper">
                 <button type="button" data-step-target="visitMicroarea" data-step="-1">−</button>
-                <input id="visitMicroarea" type="number" min="0" value="1">
+                <input id="visitMicroarea" type="text" list="visitMicroareaOptions" placeholder="Ex.: M01 ou M03 - Botafogo">
+                <div class="field-help">Use o código ou nome operacional da microárea.</div>
                 <button type="button" data-step-target="visitMicroarea" data-step="1">+</button>
               </div>
             </div>
@@ -163,7 +177,8 @@
               <label>Quarteirão</label>
               <div class="stepper">
                 <button type="button" data-step-target="visitQuarteirao" data-step="-1">−</button>
-                <input id="visitQuarteirao" type="number" min="0" value="1">
+                <input id="visitQuarteirao" type="text" list="visitQuarteiraoOptions" placeholder="Ex.: 12, 13/1, 6/01">
+                <div class="field-help">Aceita códigos compostos como 9/01, 13/1 e similares.</div>
                 <button type="button" data-step-target="visitQuarteirao" data-step="1">+</button>
               </div>
             </div>
@@ -259,6 +274,18 @@
           <div class="field" style="margin-top:16px">
             <label>Atalhos de observação</label>
             <div id="quickNotes" class="meta-pills"></div>
+          </div>
+
+          <div class="field" style="margin-top:16px">
+            <label>Assinatura do morador</label>
+            <div class="signature-shell">
+              <canvas id="signatureCanvas" width="900" height="240"></canvas>
+            </div>
+            <div class="btn-row" style="margin-top:12px">
+              <button class="btn btn-soft" id="clearSignatureBtn" type="button">Limpar assinatura</button>
+              <button class="btn btn-secondary" id="captureSignatureBtn" type="button">Confirmar assinatura</button>
+            </div>
+            <div id="signatureStatus" class="field-help">O morador pode assinar com o dedo ou caneta touch. A assinatura segue para o cartão virtual e para o PDF da visita.</div>
           </div>
 
           <div class="btn-row" style="margin-top:16px">
