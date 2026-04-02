@@ -1,53 +1,71 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1d5a40">
-  <title>Painel Publico ACE | Carmo/RJ</title>
+  <title>Painel Publico ACE | V2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="./assets/public-theme.css">
+  <link rel="stylesheet" href="./assets/public-theme-v2.css">
 </head>
-<body>
+<body class="public-v2">
   <div class="public-shell">
     <div class="public-wrap">
       <header class="topbar">
         <div class="topbar-brand">
-          <div class="topbar-mark">+</div>
+          <div class="topbar-mark">CE</div>
           <div class="topbar-copy">
             <h1>Painel Publico da Coordenacao de Combate as Endemias</h1>
-            <p>Informacoes abertas para a populacao sobre monitoramento territorial, prevencao e areas de atencao em Carmo/RJ.</p>
+            <p>Versao institucional para informar a populacao, reforcar prevencao e dar transparencia ao trabalho territorial em Carmo/RJ.</p>
           </div>
         </div>
         <div class="topbar-actions">
           <span class="pill" id="statusPill">Carregando dados</span>
-          <a class="action-link" href="./v2.html">Ver V2</a>
+          <a class="action-link" href="./index.html">Versao atual</a>
           <a class="action-link" href="https://acecarmorj.github.io/ACE/index.html">Modulo ACE</a>
         </div>
       </header>
+
+      <section class="trust-strip">
+        <article class="trust-card">
+          <small>Transparencia</small>
+          <strong>Leitura publica e agregada do territorio</strong>
+          <span>As informacoes sao exibidas por area e nunca por endereco individual, preservando a privacidade do morador.</span>
+        </article>
+        <article class="trust-card">
+          <small>Educacao</small>
+          <strong>Conteudo simples para o dia a dia</strong>
+          <span>O painel nao serve apenas para informar, mas tambem para orientar a populacao sobre prevencao e cuidado coletivo.</span>
+        </article>
+        <article class="trust-card">
+          <small>Territorio</small>
+          <strong>Mapa com foco nas areas de atencao</strong>
+          <span>O mapa de calor ajuda a comunidade a entender onde o cuidado precisa ser redobrado em cada periodo.</span>
+        </article>
+      </section>
 
       <section class="hero">
         <article class="hero-main">
           <span class="kicker" id="heroArea">Toda a cidade</span>
           <h2 id="heroHeadline">Painel publico informativo da Coordenacao de Combate as Endemias</h2>
           <p id="heroDescription">
-            Este espaco foi pensado para mostrar a situacao territorial de forma simples,
-            transparente e educativa, ajudando a populacao a entender onde estao as areas de maior atencao
-            e como cada morador pode colaborar na prevencao.
+            Este painel foi pensado para aproximar a populacao das informacoes territoriais do municipio,
+            destacando mapa de calor, areas de atencao e orientacoes praticas que ajudam a reduzir riscos no dia a dia.
           </p>
           <div class="hero-badges">
             <span class="hero-badge" id="heroBadgePeriod">Recorte atual</span>
             <span class="hero-badge" id="heroBadgeUpdated">Atualizacao</span>
-            <span class="hero-badge" id="heroBadgePrivacy">Leitura territorial agregada</span>
+            <span class="hero-badge" id="heroBadgePrivacy">Dados publicos agregados</span>
           </div>
         </article>
 
         <aside class="hero-side">
           <article class="card">
-            <span class="card-kicker">Leitura da cidade</span>
+            <span class="card-kicker">Mensagem principal</span>
             <div class="hero-note">
               <div class="hero-note-item">
                 <strong>01</strong>
@@ -59,16 +77,16 @@
               <div class="hero-note-item">
                 <strong>02</strong>
                 <div>
-                  <h4>Transparencia com cuidado</h4>
-                  <span id="heroTransparencyText">O painel exibe apenas dados agregados por territorio, sem divulgar endereco individual ou informacao pessoal.</span>
+                  <h4>Dados com responsabilidade</h4>
+                  <span id="heroTransparencyText">O painel mostra concentracoes territoriais, nunca nome de morador, assinatura ou local exato de residencia.</span>
                 </div>
               </div>
             </div>
           </article>
 
           <article class="card">
-            <span class="card-kicker">Atualizacao</span>
-            <h3>Base publica do territorio</h3>
+            <span class="card-kicker">Base publica</span>
+            <h3>Atualizacao territorial do municipio</h3>
             <p id="lastUpdateText">Ultima leitura publica: aguardando sincronizacao.</p>
           </article>
         </aside>
@@ -77,8 +95,8 @@
       <section class="section">
         <div class="section-head">
           <div>
-            <h2>Situacao atual do municipio</h2>
-            <p>Os indicadores abaixo resumem o recorte publico selecionado e ajudam a visualizar monitoramento, areas com atencao e intensidade de foco.</p>
+            <h2>Situacao atual e panorama do periodo</h2>
+            <p>Esses numeros ajudam a populacao a enxergar o volume de acoes realizadas, a quantidade de territorios monitorados e onde a atencao coletiva precisa crescer.</p>
           </div>
         </div>
         <div class="metric-grid">
@@ -108,8 +126,8 @@
       <section class="section">
         <div class="section-head">
           <div>
-            <h2>Mapa de calor e areas de atencao</h2>
-            <p>O mapa usa leitura territorial agregada para mostrar concentracoes de atencao sem expor local individual de morador.</p>
+            <h2>Mapa publico de calor e recorte por area</h2>
+            <p>O mapa abaixo permite observar a distribuicao territorial dos sinais de atencao no periodo selecionado, com leitura segura para exibicao publica.</p>
           </div>
         </div>
 
@@ -136,16 +154,16 @@
 
           <div class="side-stack">
             <article class="card list-card">
-              <span class="card-kicker">Territorios em destaque</span>
-              <h3>Onde a atencao esta maior</h3>
-              <p>Uma leitura simples para ajudar a populacao a entender quais areas pedem mais cuidado coletivo.</p>
+              <span class="card-kicker">Leitura para a populacao</span>
+              <h3>Territorios que merecem mais cuidado</h3>
+              <p>Ranking simplificado das areas com maior sinal de atencao no recorte publico escolhido.</p>
               <div id="attentionList" class="list"></div>
             </article>
 
             <article class="card chart-card">
-              <span class="card-kicker">Evolucao recente</span>
-              <h3>Movimento do periodo</h3>
-              <p>Leitura publica do volume de visitas registradas ao longo do recorte selecionado.</p>
+              <span class="card-kicker">Evolucao</span>
+              <h3>Movimento recente de visitas</h3>
+              <p>Leitura visual do volume de visitas registradas ao longo do periodo selecionado.</p>
               <div id="trendBars" class="bars"></div>
             </article>
           </div>
@@ -155,56 +173,64 @@
       <section class="section">
         <div class="section-head">
           <div>
-            <h2>Como a populacao pode ajudar</h2>
-            <p>Prevencao e cuidado com o territorio fazem diferenca. Pequenas atitudes no dia a dia reduzem risco ambiental e ajudam o trabalho da Coordenacao de Combate as Endemias.</p>
+            <h2>Como cada morador pode contribuir</h2>
+            <p>O combate as endemias depende de acao publica e tambem de atitude cotidiana. Essas orientacoes ajudam a reduzir risco e fortalecer a protecao do territorio.</p>
           </div>
         </div>
 
         <div class="edu-grid">
           <article class="edu-card">
-            <strong>Evite agua parada</strong>
-            <p>Verifique caixas, tonis, pratos de plantas, calhas, ralos, recipientes e qualquer ponto que possa acumular agua.</p>
+            <strong>Agua parada e recipientes</strong>
+            <p>Qualquer recipiente pode virar criadouro quando fica exposto com agua acumulada.</p>
             <ul>
-              <li>Mantenha reservatorios bem tampados.</li>
-              <li>Guarde recipientes virados para baixo.</li>
-              <li>Limpe quintais e calhas com frequencia.</li>
+              <li>Feche caixas e reservatorios.</li>
+              <li>Remova pratos e vasilhas sem uso.</li>
+              <li>Observe calhas, ralos e quintais.</li>
             </ul>
           </article>
 
           <article class="edu-card">
-            <strong>Cuidado com animais peconhentos</strong>
-            <p>Escorpioes e outros animais aparecem com mais facilidade onde ha entulho, lixo, mato ou abrigo inadequado.</p>
+            <strong>Escorpioes e outros riscos</strong>
+            <p>Locais com entulho, lixo, mato ou umidade favorecem abrigo para animais peconhentos.</p>
             <ul>
-              <li>Evite acumulo de materiais.</li>
-              <li>Mantenha quintais limpos e organizados.</li>
-              <li>Acione o servico publico em casos recorrentes.</li>
+              <li>Evite acumulacao de materiais.</li>
+              <li>Mantenha muros, fundos e corredores limpos.</li>
+              <li>Relate recorrencias a equipe publica.</li>
             </ul>
           </article>
 
           <article class="edu-card">
-            <strong>Esgoto, terreno baldio e caramujo</strong>
-            <p>Essas condicoes aumentam risco ambiental e podem favorecer proliferacao de vetores e outros agravos.</p>
+            <strong>Esgoto, caramujo e terreno baldio</strong>
+            <p>Essas condicoes exigem atencao coletiva porque elevam o risco ambiental e sanitário do entorno.</p>
             <ul>
-              <li>Observe focos de caramujo e umidade excessiva.</li>
-              <li>Relate esgoto exposto e terrenos sem manutencao.</li>
-              <li>Evite contato direto com residuos ou animais encontrados.</li>
+              <li>Observe umidade, lixo e vegetacao excessiva.</li>
+              <li>Evite contato direto com caramujos.</li>
+              <li>Informe locais persistentes ao poder publico.</li>
             </ul>
           </article>
 
           <article class="edu-card">
             <strong>Quando procurar a Coordenacao</strong>
-            <p>Se houver foco recorrente, local insalubre, risco ambiental ou situacao persistente no entorno, vale comunicar a equipe.</p>
+            <p>Se houver local insalubre, foco recorrente ou situacao persistente no bairro, a comunicacao ajuda a priorizar a resposta.</p>
             <ul>
-              <li>Descreva o local e o problema observado.</li>
-              <li>Se possivel, informe ponto de referencia.</li>
-              <li>O acompanhamento ajuda a priorizar a resposta.</li>
+              <li>Informe bairro, rua e ponto de referencia.</li>
+              <li>Descreva o problema encontrado.</li>
+              <li>Se possivel, registre a data da observacao.</li>
             </ul>
           </article>
+        </div>
+
+        <div class="edu-banner">
+          <div>
+            <h3>Informacao publica que orienta e protege</h3>
+            <p>Esta versao foi pensada para apresentacao institucional, exibicao em reunioes, divulgacao digital e consulta pela populacao.</p>
+          </div>
+          <a class="action-link" href="./index.html">Comparar com a versao atual</a>
         </div>
       </section>
 
       <footer class="footer">
-        Painel publico do modulo ACE | Desenvolvido por <strong>Almir Lemgruber @ALMRLK</strong>
+        Painel publico do modulo ACE | Coordenacao de Combate as Endemias | Desenvolvido por <strong>Almir Lemgruber @ALMRLK</strong>
       </footer>
     </div>
   </div>
@@ -216,4 +242,3 @@
   <script src="./assets/public-app.js"></script>
 </body>
 </html>
-

@@ -470,11 +470,11 @@
     var topArea = summary.topAreas[0];
     document.getElementById('heroArea').textContent = areaLabel;
     document.getElementById('heroHeadline').textContent = summary.totalVisits
-      ? 'Mapa de calor e leitura publica da vigilancia ambiental'
-      : 'Painel publico informativo da vigilancia ambiental';
+      ? 'Mapa de calor e leitura publica da Coordenacao de Combate as Endemias'
+      : 'Painel publico informativo da Coordenacao de Combate as Endemias';
     document.getElementById('heroDescription').textContent = summary.totalVisits
       ? 'O painel mostra um recorte agregado das acoes realizadas no territorio e das areas que merecem maior atencao coletiva.'
-      : 'Mesmo sem registros publicos no periodo selecionado, esta pagina continua orientando a populacao sobre prevencao e vigilancia.';
+      : 'Mesmo sem registros publicos no periodo selecionado, esta pagina continua orientando a populacao sobre prevencao e cuidado coletivo.';
     document.getElementById('heroBadgePeriod').textContent = 'Recorte atual: ultimos ' + state.days + ' dias';
     document.getElementById('heroBadgeUpdated').textContent = 'Atualizado em ' + state.fetchedAt;
     document.getElementById('heroBadgePrivacy').textContent = 'Mapa publico com leitura territorial agregada';
