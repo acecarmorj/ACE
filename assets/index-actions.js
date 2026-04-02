@@ -1650,8 +1650,8 @@
       '<div class="grid">' +
         app.reportTile('Abertos', snapshot.totals.opened) +
         app.reportTile('Fechados', snapshot.totals.closed) +
-        app.reportTile('Visitados', snapshot.totals.visitedProperties) +
-        app.reportTile('Total', snapshot.totals.totalProperties) +
+        app.reportTile('Trabalhados', snapshot.totals.visitedProperties) +
+        app.reportTile('Total de imoveis', snapshot.totals.totalProperties) +
         app.reportTile('Recuperados', snapshot.totals.recovered) +
         app.reportTile('Pendências', snapshot.totals.pending) +
         app.reportTile('Tubitos', snapshot.totals.tubitos) +

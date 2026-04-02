@@ -743,7 +743,8 @@
           depositosComFoco: 0,
           gps: 0,
           retornos: 0,
-          score: 0
+          score: 0,
+          latestByProperty: {}
         };
       }
       map[key].visitas += 1;
@@ -751,10 +752,20 @@
       map[key].depositos += visit.depositCount;
       map[key].depositosComFoco += visit.depositFocusCount;
       map[key].gps += (visit.gps_lat !== null && visit.gps_lng !== null) ? 1 : 0;
-      map[key].retornos += (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') ? 1 : 0;
+      var propertyKey = addressKey(visit);
+      if (!map[key].latestByProperty[propertyKey]) {
+        map[key].latestByProperty[propertyKey] = visit;
+      }
     });
     return Object.keys(map).map(function (key) {
       var item = map[key];
+      Object.keys(item.latestByProperty).forEach(function (propertyKey) {
+        var latestVisit = item.latestByProperty[propertyKey];
+        if (latestVisit.situacao === 'Fechado' || latestVisit.situacao === 'Recusa') {
+          item.retornos += 1;
+        }
+      });
+      delete item.latestByProperty;
       item.gpsRate = item.visitas ? Math.round((item.gps / item.visitas) * 100) : 0;
       item.efficiency = (item.visitas * 4) + (item.depositosComFoco * 3) + (item.gps * 2) - (item.retornos * 3);
       return item;
@@ -859,21 +870,21 @@
       if (visit.situacao === 'Visitado') {
         opened += 1;
       }
-      if (visit.situacao === 'Fechado') {
+      if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
         closed += 1;
       }
       if (visit.situacao === 'Recuperado') {
         recovered += 1;
       }
-      if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
-        pending += 1;
-      }
     });
+    var workedProperties = opened + recovered;
+    var totalProperties = opened + closed;
+    pending = Math.max(0, closed - recovered);
 
     return {
       totalVisits: visits.length,
-      visitedProperties: properties.size,
-      totalProperties: state.filteredProperties.length || properties.size,
+      visitedProperties: workedProperties,
+      totalProperties: totalProperties,
       opened: opened,
       closed: closed,
       recovered: recovered,
@@ -883,7 +894,7 @@
       tubitos: tubitos,
       infestationRate: deposits ? Number(((depositsWithFocus / deposits) * 100).toFixed(1)) : 0,
       gpsCoverage: visits.length ? Math.round((gpsCount / visits.length) * 100) : 0,
-      returns: returns,
+      returns: pending,
       focusVisits: focusVisits
     };
   }
@@ -896,23 +907,33 @@
         return;
       }
       if (!map[key]) {
-        map[key] = { nome: key, visitas: 0, focos: 0, fechados: 0, abertos: 0, pendencias: 0, tubitos: 0 };
+        map[key] = { nome: key, visitas: 0, focos: 0, fechados: 0, abertos: 0, recuperados: 0, pendencias: 0, tubitos: 0, latestByProperty: {} };
       }
       map[key].visitas += 1;
       map[key].focos += visit.focusCount || 0;
       map[key].tubitos += Number(visit.tubitos_qtd || visit.tubitosQty || 0) || 0;
-      if (visit.situacao === 'Visitado') {
-        map[key].abertos += 1;
-      }
-      if (visit.situacao === 'Fechado') {
-        map[key].fechados += 1;
-      }
-      if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
-        map[key].pendencias += 1;
+      var propertyKey = addressKey(visit);
+      if (!map[key].latestByProperty[propertyKey]) {
+        map[key].latestByProperty[propertyKey] = visit;
       }
     });
     return Object.keys(map).map(function (key) {
-      return map[key];
+      var row = map[key];
+      Object.keys(row.latestByProperty).forEach(function (propertyKey) {
+        var latestVisit = row.latestByProperty[propertyKey];
+        if (latestVisit.situacao === 'Visitado') {
+          row.abertos += 1;
+        }
+        if (latestVisit.situacao === 'Fechado' || latestVisit.situacao === 'Recusa') {
+          row.fechados += 1;
+        }
+        if (latestVisit.situacao === 'Recuperado') {
+          row.recuperados += 1;
+        }
+      });
+      row.pendencias = Math.max(0, row.fechados - row.recuperados);
+      delete row.latestByProperty;
+      return row;
     }).sort(function (a, b) {
       return b.focos - a.focos || b.pendencias - a.pendencias || b.visitas - a.visitas || a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true });
     });
@@ -982,7 +1003,7 @@
     }
     var complementSummary = summarizePropertyComplements(state.filteredProperties);
     var items = [];
-    items.push('O recorte atual soma ' + metrics.totalVisits + ' visitas, ' + metrics.opened + ' abertos, ' + metrics.closed + ' fechados, ' + metrics.visitedProperties + ' visitados, ' + metrics.totalProperties + ' no total, ' + metrics.recovered + ' recuperados e ' + metrics.pending + ' pendencias.');
+    items.push('O recorte atual soma ' + metrics.totalVisits + ' visitas, ' + metrics.opened + ' abertos, ' + metrics.closed + ' fechados, ' + metrics.visitedProperties + ' trabalhados, ' + metrics.totalProperties + ' no total, ' + metrics.recovered + ' recuperados e ' + metrics.pending + ' pendencias.');
     items.push('A taxa de infestacao esta em ' + metrics.infestationRate + '%, com ' + metrics.depositsWithFocus + ' depositos com foco e ' + metrics.tubitos + ' tubitos coletados.');
     if (state.filteredProperties.length) {
       items.push('Na base cadastral filtrada, ' + complementSummary.Normal + ' imovel(is) estao como Normal, ' + complementSummary.Sequencia + ' como Sequencia e ' + complementSummary.Complemento + ' como Complemento.');
@@ -1008,7 +1029,7 @@
     var focusByDeposit = aggregateFocusByDeposit(visits);
 
     document.getElementById('heroTotalVisits').textContent = metrics.totalVisits;
-    document.getElementById('heroVisitsSub').textContent = metrics.visitedProperties + ' endereco(s) unicos no recorte.';
+    document.getElementById('heroVisitsSub').textContent = metrics.visitedProperties + ' imovel(is) trabalhado(s) no recorte.';
     document.getElementById('heroInfestation').textContent = metrics.infestationRate + '%';
     document.getElementById('heroInfestationSub').textContent = metrics.depositsWithFocus + ' deposito(s) com foco de ' + metrics.deposits + ' encontrados.';
     document.getElementById('heroDepositsFocus').textContent = metrics.depositsWithFocus;
@@ -1035,8 +1056,8 @@
     document.getElementById('panelMetricGrid').innerHTML = [
       metricCard('Abertos', metrics.opened, 'ok'),
       metricCard('Fechados', metrics.closed, 'warn'),
-      metricCard('Visitados', metrics.visitedProperties, 'accent'),
-      metricCard('Total', metrics.totalProperties, 'accent'),
+      metricCard('Trabalhados', metrics.visitedProperties, 'accent'),
+      metricCard('Total de imoveis', metrics.totalProperties, 'accent'),
       metricCard('Recuperados', metrics.recovered, 'accent'),
       metricCard('Pendencias', metrics.pending, 'danger'),
       metricCard('Tubitos', metrics.tubitos, 'warn'),
@@ -1286,6 +1307,7 @@
   function aggregateTerritoryMetrics(visits) {
     var map = {};
     var matchedVisits = 0;
+    var latestByPropertyPolygon = {};
 
     visits.forEach(function (visit) {
       var polygon = resolvePolygonForVisit(visit);
@@ -1306,8 +1328,23 @@
       map[polygon.id].visitas += 1;
       map[polygon.id].focos += Number(visit.focusCount || 0) || 0;
       map[polygon.id].tubitos += Number(visit.tubitosQty || 0) || 0;
-      if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
-        map[polygon.id].pendencias += 1;
+      var territoryKey = polygon.id + '|' + addressKey(visit);
+      if (!latestByPropertyPolygon[territoryKey]) {
+        latestByPropertyPolygon[territoryKey] = { polygonId: polygon.id, visit: visit };
+      }
+    });
+
+    Object.keys(latestByPropertyPolygon).forEach(function (key) {
+      var row = latestByPropertyPolygon[key];
+      var bucket = map[row.polygonId];
+      if (!bucket) {
+        return;
+      }
+      if (row.visit.situacao === 'Fechado' || row.visit.situacao === 'Recusa') {
+        bucket.pendencias += 1;
+      }
+      if (row.visit.situacao === 'Recuperado') {
+        bucket.pendencias = Math.max(0, bucket.pendencias - 1);
       }
     });
 
@@ -1512,8 +1549,8 @@
       '<div class="grid">' +
         metricCard('Abertos', metrics.opened, 'ok') +
         metricCard('Fechados', metrics.closed, 'warn') +
-        metricCard('Visitados', metrics.visitedProperties, 'accent') +
-        metricCard('Total', metrics.totalProperties, 'accent') +
+        metricCard('Trabalhados', metrics.visitedProperties, 'accent') +
+        metricCard('Total de imoveis', metrics.totalProperties, 'accent') +
         metricCard('Pendencias', metrics.pending, 'danger') +
         metricCard('Recuperados', metrics.recovered, 'accent') +
         metricCard('Tubitos', metrics.tubitos, 'warn') +

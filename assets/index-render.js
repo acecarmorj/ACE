@@ -715,8 +715,8 @@
     document.getElementById('localMetricGrid').innerHTML = [
       app.makeMetricCard('Abertos', totals.opened, 'ok'),
       app.makeMetricCard('Fechados', totals.closed, 'warn'),
-      app.makeMetricCard('Visitados', totals.visitedProperties, 'accent'),
-      app.makeMetricCard('Total', totals.totalProperties, 'accent'),
+      app.makeMetricCard('Trabalhados', totals.visitedProperties, 'accent'),
+      app.makeMetricCard('Total de imoveis', totals.totalProperties, 'accent'),
       app.makeMetricCard('Recuperados', totals.recovered, 'accent'),
       app.makeMetricCard('Pendências', totals.pending, 'danger'),
       app.makeMetricCard('Tubitos', totals.tubitos, 'warn'),

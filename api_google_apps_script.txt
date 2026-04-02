@@ -157,10 +157,12 @@ function buildDashboard_(start, end) {
     const row = latestByProperty[key];
     const situacao = String(row.situacao || '').trim().toLowerCase();
     if (situacao.indexOf('visit') > -1) abertos += 1;
-    if (situacao.indexOf('fech') > -1) fechados += 1;
+    if (situacao.indexOf('fech') > -1 || situacao.indexOf('recusa') > -1) fechados += 1;
     if (situacao.indexOf('recuper') > -1) recuperados += 1;
-    if (situacao.indexOf('fech') > -1 || situacao.indexOf('recusa') > -1) pendencias += 1;
   });
+  const trabalhados = abertos + recuperados;
+  const totalImoveis = abertos + fechados;
+  pendencias = Math.max(0, fechados - recuperados);
 
   return {
     ok: true,
@@ -169,10 +171,10 @@ function buildDashboard_(start, end) {
       properties: properties,
       metrics: {
         total_visitas: visits.length,
-        imoveis_visitados: Object.keys(latestByProperty).length,
+        imoveis_visitados: trabalhados,
         abertos: abertos,
         fechados: fechados,
-        total: properties.length,
+        total: totalImoveis,
         recuperados: recuperados,
         pendencias: pendencias,
         depositos_encontrados: totalDepositos,

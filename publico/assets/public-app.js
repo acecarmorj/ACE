@@ -419,7 +419,7 @@
       bucket.depositFocus += visit.depositFocusCount;
       bucket.deposits += visit.depositCount;
       bucket.gps += visit.gpsLat !== null && visit.gpsLng !== null ? 1 : 0;
-      if (/fechado/i.test(visit.situacao)) { bucket.closed += 1; } else { bucket.opened += 1; }
+      if (/fechado|recusa/i.test(visit.situacao)) { bucket.closed += 1; } else { bucket.opened += 1; }
 
       areaBucket.visits += 1;
       areaBucket.focusSignals += focusSignal;
@@ -453,7 +453,6 @@
     var totalDepositsFocus = quarters.reduce(function (sum, item) { return sum + item.depositFocus; }, 0);
     var totalFocusSignals = quarters.reduce(function (sum, item) { return sum + item.focusSignals; }, 0);
     var gpsVisits = visits.filter(function (visit) { return visit.gpsLat !== null && visit.gpsLng !== null; }).length;
-    var workedProperties = Object.keys(latestByProperty).length;
     var opened = 0;
     var closed = 0;
     var recovered = 0;
@@ -463,16 +462,18 @@
       var row = latestByProperty[key];
       var situacao = String(row.situacao || '').trim().toLowerCase();
       if (situacao.indexOf('visit') > -1) { opened += 1; }
-      if (situacao.indexOf('fech') > -1) { closed += 1; }
+      if (situacao.indexOf('fech') > -1 || situacao.indexOf('recusa') > -1) { closed += 1; }
       if (situacao.indexOf('recuper') > -1) { recovered += 1; }
-      if (situacao.indexOf('fech') > -1 || situacao.indexOf('recusa') > -1) { pending += 1; }
     });
+    var workedProperties = opened + recovered;
+    var totalProperties = opened + closed;
+    pending = Math.max(0, closed - recovered);
 
     var useGlobalMetrics = state.area === 'TODOS' && state.metrics && Object.keys(state.metrics).length;
     var visitResume = {
       opened: useGlobalMetrics ? utils.toNumber(state.metrics.abertos) : opened,
       closed: useGlobalMetrics ? utils.toNumber(state.metrics.fechados) : closed,
-      totalProperties: useGlobalMetrics && utils.toNumber(state.metrics.total) ? utils.toNumber(state.metrics.total) : workedProperties,
+      totalProperties: useGlobalMetrics && utils.toNumber(state.metrics.total) ? utils.toNumber(state.metrics.total) : totalProperties,
       recovered: useGlobalMetrics ? utils.toNumber(state.metrics.recuperados) : recovered,
       worked: useGlobalMetrics && utils.toNumber(state.metrics.imoveis_visitados) ? utils.toNumber(state.metrics.imoveis_visitados) : workedProperties,
       pending: useGlobalMetrics ? utils.toNumber(state.metrics.pendencias) : pending,

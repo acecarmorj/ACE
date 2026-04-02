@@ -1206,23 +1206,23 @@
       if (latestVisit.situacao === 'Visitado') {
         opened += 1;
       }
-      if (latestVisit.situacao === 'Fechado') {
+      if (latestVisit.situacao === 'Fechado' || latestVisit.situacao === 'Recusa') {
         closed += 1;
       }
       if (latestVisit.situacao === 'Recuperado') {
         recovered += 1;
       }
-      if (latestVisit.situacao === 'Fechado' || latestVisit.situacao === 'Recusa') {
-        pending += 1;
-      }
     });
+    var workedProperties = opened + recovered;
+    var totalProperties = opened + closed;
+    pending = Math.max(0, closed - recovered);
 
     return {
       visits: visits,
       totals: {
         totalVisits: visits.length,
-        visitedProperties: visitedProperties.size,
-        totalProperties: properties.length,
+        visitedProperties: workedProperties,
+        totalProperties: totalProperties,
         opened: opened,
         closed: closed,
         recovered: recovered,
