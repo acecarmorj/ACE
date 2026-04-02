@@ -985,7 +985,7 @@
     if (document.getElementById('propQuarteirao')) {
       document.getElementById('propQuarteirao').value = '';
     }
-    document.getElementById('propComplemento').value = '';
+    document.getElementById('propComplemento').value = app.CONFIG.PROPERTY_COMPLEMENTS[0] || 'Normal';
     document.getElementById('propTipo').value = app.CONFIG.PROPERTY_TYPES[0] || 'Residencial';
     document.getElementById('propReferencia').value = '';
     document.getElementById('propObs').value = '';
@@ -1080,7 +1080,7 @@
       bairro: bairro,
       logradouro: logradouro,
       numero: numero,
-      complemento: app.normalizeFreeText(document.getElementById('propComplemento').value || ''),
+      complemento: String(document.getElementById('propComplemento').value || app.CONFIG.PROPERTY_COMPLEMENTS[0] || 'Normal').trim(),
       tipo: String(document.getElementById('propTipo').value || 'Residencial').trim(),
       referencia: app.normalizeTitleText(document.getElementById('propReferencia').value || ''),
       obs: app.normalizeFreeText(document.getElementById('propObs').value || ''),
@@ -1151,7 +1151,7 @@
     if (typeof app.syncAreaSelects === 'function' && document.getElementById('propMicroarea') && document.getElementById('propQuarteirao')) {
       app.syncAreaSelects(document.getElementById('propMicroarea'), document.getElementById('propQuarteirao'), property.quarteirao || '');
     }
-    document.getElementById('propComplemento').value = property.complemento;
+    document.getElementById('propComplemento').value = property.complemento || app.CONFIG.PROPERTY_COMPLEMENTS[0] || 'Normal';
     document.getElementById('propTipo').value = property.tipo;
     document.getElementById('propReferencia').value = property.referencia;
     document.getElementById('propObs').value = property.obs;

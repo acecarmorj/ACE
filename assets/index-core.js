@@ -17,6 +17,7 @@
     PROPERTY_TYPES: [
       'Residencial', 'Comercial', 'Terreno Baldio', 'Ponto Estratégico', 'Órgão Público', 'Outro'
     ],
+    PROPERTY_COMPLEMENTS: ['Normal', 'Sequência', 'Complemento'],
     LARVICIDAS: ['Nenhum', 'Bti', 'Temephos (Abate)', 'Pyriproxyfen', 'Spinosad'],
     ADULTICIDAS: ['Nenhum', 'Malathion', 'Deltametrina', 'Ciflutrina'],
     QUICK_NOTES: [
@@ -609,7 +610,7 @@
     if (!property.quarteirao) {
       flags.push('Sem quarteirão');
     }
-    if (!property.referencia && !property.complemento) {
+    if (!property.referencia) {
       flags.push('Sem referência');
     }
     if (!property.lastLat || !property.lastLng) {
@@ -743,6 +744,14 @@
     var bairro = String(property.bairro || '').trim();
     var logradouro = String(property.logradouro || '').trim();
     var numero = String(property.numero || '').trim();
+    var allowedComplements = app.CONFIG.PROPERTY_COMPLEMENTS || [];
+    var rawComplemento = String(property.complemento || property.logradouroModo || '').trim();
+    var normalizedComplemento = app.normalizeTitleText(rawComplemento);
+    var referenceValue = app.normalizeTitleText(property.referencia || property.ref || '');
+    var complementValue = allowedComplements.indexOf(normalizedComplemento) > -1 ? normalizedComplemento : 'Normal';
+    if (!referenceValue && rawComplemento && allowedComplements.indexOf(normalizedComplemento) === -1) {
+      referenceValue = app.normalizeTitleText(rawComplemento);
+    }
     return {
       uid: String(property.uid || app.createId('PROP')).trim(),
       morador: app.normalizeTitleText(property.morador || ''),
@@ -752,9 +761,9 @@
       bairro: app.normalizeTitleText(bairro),
       logradouro: app.normalizeTitleText(logradouro),
       numero: app.normalizeFreeText(numero),
-      complemento: app.normalizeFreeText(property.complemento || property.logradouroModo || ''),
+      complemento: complementValue,
       tipo: String(property.tipo || 'Residencial').trim(),
-      referencia: app.normalizeTitleText(property.referencia || property.ref || ''),
+      referencia: referenceValue,
       obs: app.normalizeFreeText(property.obs || ''),
       address_key: String(property.address_key || app.addressKey({ bairro: bairro, logradouro: logradouro, numero: numero })).trim(),
       lastLat: app.normalizeCoord(property.lastLat || property.last_lat || ''),
@@ -766,6 +775,19 @@
       lastVisitAt: String(property.lastVisitAt || property.last_visit_at || '').trim(),
       updatedAt: String(property.updatedAt || new Date().toISOString()).trim()
     };
+  };
+
+  app.getPropertyReferenceText = function (property) {
+    if (!property) {
+      return 'Sem referência complementar';
+    }
+    if (property.referencia) {
+      return property.referencia;
+    }
+    if (property.complemento && property.complemento !== 'Normal') {
+      return 'Cadastro ' + property.complemento;
+    }
+    return 'Sem referência complementar';
   };
 
   app.normalizeVisit = function (visit) {

@@ -95,6 +95,9 @@
       pills.push('<span class="meta-pill">MA ' + app.escapeHtml(property.microarea || '-') + ' • Q ' + app.escapeHtml(property.quarteirao || '-') + '</span>');
     }
     pills.push('<span class="meta-pill">Tipo: ' + app.escapeHtml(property.tipo || '-') + '</span>');
+    if (property.complemento) {
+      pills.push('<span class="meta-pill">Complemento: ' + app.escapeHtml(property.complemento) + '</span>');
+    }
     if (property.telefone) {
       pills.push('<span class="meta-pill">Contato: ' + app.escapeHtml(property.telefone) + '</span>');
     }
@@ -110,7 +113,7 @@
 
     node.innerHTML = '' +
       '<h3>' + app.escapeHtml(property.logradouro + ', ' + property.numero) + '</h3>' +
-      '<p>' + app.escapeHtml((property.morador || 'Morador não informado') + ' • ' + (property.referencia || property.complemento || 'Sem referência complementar')) + '</p>' +
+      '<p>' + app.escapeHtml((property.morador || 'Morador não informado') + ' • ' + app.getPropertyReferenceText(property)) + '</p>' +
       '<p style="margin-top:8px;color:#66727c">' + app.escapeHtml(last && (last.situacao === 'Fechado' || last.situacao === 'Recusa') ? 'Pendência ativa para retorno.' : 'Imóvel pronto para nova ação de campo.') + '</p>' +
       '<div class="meta-pills">' + pills.join('') + '</div>';
   };
@@ -304,6 +307,7 @@
     var propMicroarea = document.getElementById('propMicroarea');
     var propQuarteirao = document.getElementById('propQuarteirao');
     var propTipo = document.getElementById('propTipo');
+    var propComplemento = document.getElementById('propComplemento');
     var visitLarvicida = document.getElementById('visitLarvicida');
     var visitAdulticida = document.getElementById('visitAdulticida');
     var currentPropertyBairro = propBairro.value;
@@ -313,6 +317,7 @@
     var currentPropertyMicroarea = propMicroarea ? app.normalizeAreaCode(propMicroarea.value) : '';
     var currentPropertyQuarteirao = propQuarteirao ? app.normalizeAreaCode(propQuarteirao.value) : '';
     var currentPropertyType = propTipo ? propTipo.value : '';
+    var currentPropertyComplement = propComplemento ? String(propComplemento.value || '').trim() : '';
     var currentPropertyLogradouro = document.getElementById('propLogradouro') ? String(document.getElementById('propLogradouro').value || '').trim() : '';
     var currentLarvicida = visitLarvicida ? visitLarvicida.value : '';
     var currentAdulticida = visitAdulticida ? visitAdulticida.value : '';
@@ -347,6 +352,12 @@
     }).join('');
     if (currentPropertyType) {
       document.getElementById('propTipo').value = currentPropertyType;
+    }
+    if (propComplemento) {
+      propComplemento.innerHTML = app.CONFIG.PROPERTY_COMPLEMENTS.map(function (label) {
+        return '<option value="' + app.escapeHtml(label) + '">' + app.escapeHtml(label) + '</option>';
+      }).join('');
+      propComplemento.value = currentPropertyComplement || app.CONFIG.PROPERTY_COMPLEMENTS[0] || 'Normal';
     }
     document.getElementById('visitLarvicida').innerHTML = app.CONFIG.LARVICIDAS.map(function (label) {
       return '<option value="' + app.escapeHtml(label) + '">' + app.escapeHtml(label) + '</option>';
@@ -606,7 +617,7 @@
           '<strong>' + app.escapeHtml(property.logradouro + ', ' + property.numero) + '</strong>' +
           '<div style="margin-top:6px;color:#66727c">' + app.escapeHtml(property.bairro + ' • ' + property.tipo) + '</div>' +
           '<div style="margin-top:6px;color:#66727c">' + app.escapeHtml((property.morador || 'Morador não informado') + (property.telefone ? ' • ' + property.telefone : '')) + '</div>' +
-          '<div style="margin-top:6px;color:#66727c">' + app.escapeHtml(property.referencia || property.complemento || 'Sem referência complementar') + '</div>' +
+          '<div style="margin-top:6px;color:#66727c">' + app.escapeHtml(app.getPropertyReferenceText(property)) + '</div>' +
           '<div class="meta-pills">' + tags.join('') + '</div>' +
           '<div class="card-actions">' +
             '<button class="btn btn-soft" type="button" data-property-edit="' + app.escapeHtml(property.uid) + '">Editar</button>' +
