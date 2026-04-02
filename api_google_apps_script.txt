@@ -1,0 +1,404 @@
+const SHEETS = {
+  AGENTS: 'Agentes',
+  PROPERTIES: 'Imoveis',
+  VISITS: 'Visitas',
+  METRICS: 'Metrics_Diarias',
+  CONFIG: 'Config'
+};
+
+const PHOTO_FOLDER_NAME = 'FOTOS_ACE_CAMPO';
+const REPORT_FOLDER_NAME = 'RELATORIOS_ACE_VISITAS';
+
+const HEADERS = {};
+HEADERS[SHEETS.AGENTS] = ['uid','nome','matricula','senhaHash','updatedAt'];
+HEADERS[SHEETS.PROPERTIES] = ['uid','morador','telefone','microarea','quarteirao','bairro','logradouro','numero','complemento','tipo','referencia','obs','address_key','last_lat','last_lng','last_visit_at','updatedAt'];
+HEADERS[SHEETS.VISITS] = ['uid','sheet_name','data','hora','agente','matricula','microarea','quarteirao','bairro','logradouro','numero','tipo','situacao','morador','telefone','property_uid','deposits','deposit_count','deposit_focus_breakdown','deposit_focus_count','deposit_with_focus','foco','focus_count','acessou_caixa_agua','larvicida','larvicida_qtd','adulticida','adulticida_qtd','tubitos_qtd','card_code','card_virtual_url','obs','gps_lat','gps_lng','gps_acc','foto_url','photo_data_url','foto_drive_id','assinatura_data_url','assinatura_em','relatorio_pdf_url','relatorio_pdf_drive_id','updatedAt'];
+HEADERS[SHEETS.METRICS] = ['reference_date','total_visitas','imoveis_visitados','abertos','fechados','total','recuperados','pendencias','depositos_encontrados','depositos_com_foco','tubitos_qtd','taxa_infestacao','cobertura_gps','retornos','focos','updatedAt'];
+HEADERS[SHEETS.CONFIG] = ['key','value','description'];
+
+function doGet(e) {
+  try {
+    ensureStructure_();
+    const action = String((e && e.parameter && e.parameter.action) || 'bootstrap').trim();
+    const callback = String((e && e.parameter && e.parameter.callback) || '').trim();
+
+    if (action === 'bootstrap') {
+      return respond_({
+        ok: true,
+        agents: readObjects_(SHEETS.AGENTS),
+        properties: readObjects_(SHEETS.PROPERTIES)
+      }, callback);
+    }
+
+    if (action === 'dashboard') {
+      const date = String((e.parameter && e.parameter.date) || '').trim();
+      return respond_(buildDashboard_(date, date), callback);
+    }
+
+    if (action === 'dashboard_range') {
+      const start = String((e.parameter && e.parameter.start) || '').trim();
+      const end = String((e.parameter && e.parameter.end) || '').trim();
+      return respond_(buildDashboard_(start, end), callback);
+    }
+
+    if (action === 'card') {
+      const code = normalizeCode_(String((e.parameter && e.parameter.code) || '').trim());
+      const row = readObjects_(SHEETS.VISITS).find(item => normalizeCode_(item.card_code) === code);
+      return respond_({ ok: !!row, data: row || null }, callback);
+    }
+
+    return respond_({ ok: false, error: 'Ação GET não suportada.' }, callback);
+  } catch (err) {
+    return respond_({ ok: false, error: err.message || String(err) }, getCallback_(e));
+  }
+}
+
+function doPost(e) {
+  try {
+    ensureStructure_();
+    const payload = parseBody_(e);
+    const action = String(payload.action || '').trim();
+    if (action !== 'sync') {
+      return respond_({ ok: false, error: 'Ação POST não suportada.' });
+    }
+
+    syncCollection_(SHEETS.AGENTS, payload.agents || [], 'uid');
+    syncCollection_(SHEETS.PROPERTIES, payload.properties || [], 'uid');
+    syncVisits_(payload.visits || []);
+    syncMetrics_(payload.metrics_daily || {});
+
+    return respond_({
+      ok: true,
+      totals: {
+        agents: (payload.agents || []).length,
+        properties: (payload.properties || []).length,
+        visits: (payload.visits || []).length
+      }
+    });
+  } catch (err) {
+    return respond_({ ok: false, error: err.message || String(err) });
+  }
+}
+
+function ensureStructure_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.keys(HEADERS).forEach(name => {
+    let sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+    }
+    const headers = HEADERS[name];
+    const current = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+    const same = headers.every((value, index) => String(current[index] || '') === value);
+    if (!same) {
+      sheet.clear();
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.setFrozenRows(1);
+    }
+  });
+
+  const cfg = ss.getSheetByName(SHEETS.CONFIG);
+  if (cfg.getLastRow() === 1) {
+    cfg.getRange(2, 1, 4, 3).setValues([
+      ['api_url', 'DEPLOY_WEB_APP_URL', 'Preencha com a URL publicada do Apps Script'],
+      ['photo_folder', PHOTO_FOLDER_NAME, 'Pasta criada automaticamente para receber as fotos'],
+      ['report_folder', REPORT_FOLDER_NAME, 'Pasta criada automaticamente para receber os PDFs das visitas'],
+      ['version', 'ace_api_v2', 'Versão da estrutura']
+    ]);
+  }
+}
+
+function buildDashboard_(start, end) {
+  const visits = readObjects_(SHEETS.VISITS).filter(row => {
+    if (start && row.data < start) return false;
+    if (end && row.data > end) return false;
+    return true;
+  });
+  const properties = readObjects_(SHEETS.PROPERTIES);
+  const latestByProperty = {};
+  let gpsCount = 0;
+  let tubitos = 0;
+  let focusVisits = 0;
+
+  const totalDepositos = visits.reduce((sum, row) => sum + toNumber_(row.deposit_count), 0);
+  const depositosComFoco = visits.reduce((sum, row) => sum + toNumber_(row.deposit_focus_count), 0);
+  visits.forEach(row => {
+    const key = [row.bairro, row.logradouro, row.numero].join('|').toLowerCase();
+    if (!latestByProperty[key]) {
+      latestByProperty[key] = row;
+    }
+    if (String(row.gps_lat || '').trim() || String(row.gps_lng || '').trim()) {
+      gpsCount += 1;
+    }
+    tubitos += toNumber_(row.tubitos_qtd);
+    if (String(row.foco || '').trim().toLowerCase() === 'sim') {
+      focusVisits += 1;
+    }
+  });
+
+  let abertos = 0;
+  let fechados = 0;
+  let recuperados = 0;
+  let pendencias = 0;
+  Object.keys(latestByProperty).forEach(key => {
+    const row = latestByProperty[key];
+    const situacao = String(row.situacao || '').trim().toLowerCase();
+    if (situacao.indexOf('visit') > -1) abertos += 1;
+    if (situacao.indexOf('fech') > -1) fechados += 1;
+    if (situacao.indexOf('recuper') > -1) recuperados += 1;
+    if (situacao.indexOf('fech') > -1 || situacao.indexOf('recusa') > -1) pendencias += 1;
+  });
+
+  return {
+    ok: true,
+    data: {
+      visits: visits,
+      properties: properties,
+      metrics: {
+        total_visitas: visits.length,
+        imoveis_visitados: Object.keys(latestByProperty).length,
+        abertos: abertos,
+        fechados: fechados,
+        total: properties.length,
+        recuperados: recuperados,
+        pendencias: pendencias,
+        depositos_encontrados: totalDepositos,
+        depositos_com_foco: depositosComFoco,
+        tubitos_qtd: tubitos,
+        cobertura_gps: visits.length ? Math.round((gpsCount / visits.length) * 100) : 0,
+        retornos: pendencias,
+        focos: focusVisits,
+        taxa_infestacao: totalDepositos ? Number(((depositosComFoco / totalDepositos) * 100).toFixed(1)) : 0
+      }
+    }
+  };
+}
+
+function syncVisits_(rows) {
+  const existing = readObjects_(SHEETS.VISITS);
+  const existingByUid = {};
+  existing.forEach(row => {
+    existingByUid[String(row.uid || '').trim()] = row;
+  });
+  const prepared = (rows || []).map(row => {
+    const item = Object.assign({}, row);
+    const uploaded = uploadPhotoIfNeeded_(item);
+    if (uploaded.url) item.foto_url = uploaded.url;
+    if (uploaded.id) item.foto_drive_id = uploaded.id;
+    const pdf = createVisitReportPdf_(item, existingByUid[String(item.uid || '').trim()]);
+    if (pdf.url) item.relatorio_pdf_url = pdf.url;
+    if (pdf.id) item.relatorio_pdf_drive_id = pdf.id;
+    delete item.photo_data_url;
+    return item;
+  });
+  syncCollection_(SHEETS.VISITS, prepared, 'uid');
+}
+
+function syncMetrics_(row) {
+  if (!row || !row.reference_date) return;
+  const item = Object.assign({}, row, { updatedAt: new Date().toISOString() });
+  syncCollection_(SHEETS.METRICS, [item], 'reference_date');
+}
+
+function syncCollection_(sheetName, rows, keyField) {
+  if (!rows || !rows.length) return;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const headers = HEADERS[sheetName];
+  const current = readObjects_(sheetName);
+  const indexByKey = {};
+  current.forEach((row, idx) => {
+    indexByKey[String(row[keyField] || '').trim()] = idx + 2;
+  });
+
+  rows.forEach(raw => {
+    const row = Object.assign({}, raw);
+    const key = String(row[keyField] || '').trim();
+    if (!key) return;
+    if (headers.indexOf('updatedAt') > -1 && !row.updatedAt) {
+      row.updatedAt = new Date().toISOString();
+    }
+    const values = headers.map(header => row[header] != null ? row[header] : '');
+    if (indexByKey[key]) {
+      sheet.getRange(indexByKey[key], 1, 1, headers.length).setValues([values]);
+    } else {
+      sheet.appendRow(values);
+    }
+  });
+}
+
+function readObjects_(sheetName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  const headers = data[0];
+  return data.slice(1).filter(row => row.join('') !== '').map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
+      obj[header] = row[index];
+    });
+    return obj;
+  });
+}
+
+function uploadPhotoIfNeeded_(row) {
+  const existingUrl = String(row.foto_url || '').trim();
+  if (existingUrl) {
+    return { url: existingUrl, id: String(row.foto_drive_id || '').trim() };
+  }
+  const dataUrl = String(row.photo_data_url || '').trim();
+  if (!dataUrl || dataUrl.indexOf('data:image/') !== 0) {
+    return { url: '', id: '' };
+  }
+
+  const folder = ensurePhotoFolder_();
+  const parts = dataUrl.split(',');
+  const meta = parts[0] || '';
+  const bytes = Utilities.base64Decode(parts[1] || '');
+  const mime = meta.indexOf('image/png') > -1 ? 'image/png' : 'image/jpeg';
+  const ext = mime === 'image/png' ? '.png' : '.jpg';
+  const fileName = [
+    'ace',
+    row.data || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    sanitizeFile_(row.bairro),
+    sanitizeFile_(row.logradouro),
+    sanitizeFile_(row.numero),
+    sanitizeFile_(row.uid)
+  ].filter(Boolean).join('_') + ext;
+
+  const blob = Utilities.newBlob(bytes, mime, fileName);
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { url: file.getUrl(), id: file.getId() };
+}
+
+function ensurePhotoFolder_() {
+  const folders = DriveApp.getFoldersByName(PHOTO_FOLDER_NAME);
+  return folders.hasNext() ? folders.next() : DriveApp.createFolder(PHOTO_FOLDER_NAME);
+}
+
+function ensureReportFolder_() {
+  const folders = DriveApp.getFoldersByName(REPORT_FOLDER_NAME);
+  return folders.hasNext() ? folders.next() : DriveApp.createFolder(REPORT_FOLDER_NAME);
+}
+
+function createVisitReportPdf_(row, existingRow) {
+  const sameVersion = existingRow &&
+    String(existingRow.updatedAt || '').trim() === String(row.updatedAt || '').trim() &&
+    String(existingRow.relatorio_pdf_url || '').trim();
+
+  if (sameVersion) {
+    return {
+      url: String(existingRow.relatorio_pdf_url || '').trim(),
+      id: String(existingRow.relatorio_pdf_drive_id || '').trim()
+    };
+  }
+
+  const folder = ensureReportFolder_();
+  const fileName = [
+    'ace-visita',
+    row.data || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    sanitizeFile_(row.bairro),
+    sanitizeFile_(row.logradouro),
+    sanitizeFile_(row.numero),
+    sanitizeFile_(row.uid)
+  ].filter(Boolean).join('_') + '.pdf';
+
+  const html = buildVisitReportHtml_(row);
+  const blob = Utilities.newBlob(html, MimeType.HTML, fileName.replace('.pdf', '.html')).getAs(MimeType.PDF).setName(fileName);
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { url: file.getUrl(), id: file.getId() };
+}
+
+function buildVisitReportHtml_(row) {
+  const cardUrl = String(row.card_virtual_url || '').trim();
+  const signature = String(row.assinatura_data_url || '').trim();
+  const photoUrl = String(row.photo_data_url || row.foto_url || '').trim();
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<style>' +
+      'body{font-family:Arial,sans-serif;color:#1b252e;padding:26px;margin:0}' +
+      'h1,h2{color:#183c2c;margin:0 0 10px}' +
+      '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}' +
+      '.box{border:1px solid #d6dfe2;border-radius:16px;padding:14px;background:#f8fbf9}' +
+      '.label{display:block;font-size:11px;text-transform:uppercase;color:#66727c;font-weight:700;margin-bottom:6px}' +
+      '.value{font-size:15px;font-weight:700;color:#183c2c}' +
+      '.section{margin-top:18px}' +
+      '.image{width:100%;max-height:260px;object-fit:contain;border:1px solid #d6dfe2;border-radius:12px;background:#fff}' +
+      '.credit{margin-top:18px;color:#66727c;font-size:12px;font-weight:700;text-align:center}' +
+    '</style></head><body>' +
+    '<h1>Relatório de visita ACE</h1>' +
+    '<div>Desenvolvido por Almir Lemgruber @ALMRLK</div>' +
+    '<div class="grid">' +
+      box_('Data', String(row.data || '')) +
+      box_('Hora', String(row.hora || '')) +
+      box_('Agente', String(row.agente || '')) +
+      box_('Matrícula', String(row.matricula || '')) +
+      box_('Morador', String(row.morador || '')) +
+      box_('Endereço', [row.logradouro, row.numero, row.bairro].filter(Boolean).join(', ')) +
+      box_('Microárea', String(row.microarea || '')) +
+      box_('Quarteirão', String(row.quarteirao || '')) +
+      box_('Situação', String(row.situacao || '')) +
+      box_('Foco', String(row.foco || '') + ' • ' + String(row.focus_count || 0)) +
+      box_('Depósitos com foco', String(row.deposit_focus_count || 0)) +
+      box_('Tubitos', String(row.tubitos_qtd || 0)) +
+      box_('Caixa d\'água', String(row.acessou_caixa_agua || '')) +
+      box_('Cartão virtual', cardUrl || 'Não informado') +
+    '</div>' +
+    '<div class="section"><h2>Observações</h2><div class="box"><span class="value">' + safe_(row.obs || '-') + '</span></div></div>' +
+    (photoUrl ? '<div class="section"><h2>Foto da visita</h2><img class="image" src="' + safe_(photoUrl) + '" alt="Foto da visita"></div>' : '') +
+    (signature ? '<div class="section"><h2>Assinatura do morador</h2><img class="image" src="' + safe_(signature) + '" alt="Assinatura do morador"></div>' : '') +
+    '<div class="credit">Documento gerado automaticamente para arquivo no Google Drive.</div>' +
+    '</body></html>';
+}
+
+function box_(label, value) {
+  return '<div class="box"><span class="label">' + safe_(label) + '</span><span class="value">' + safe_(value || '-') + '</span></div>';
+}
+
+function safe_(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeFile_(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
+function normalizeCode_(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+function toNumber_(value) {
+  const num = Number(value || 0);
+  return isNaN(num) ? 0 : num;
+}
+
+function parseBody_(e) {
+  const raw = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
+  return JSON.parse(raw);
+}
+
+function getCallback_(e) {
+  return String((e && e.parameter && e.parameter.callback) || '').trim();
+}
+
+function respond_(payload, callback) {
+  const text = JSON.stringify(payload);
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + text + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(text)
+    .setMimeType(ContentService.MimeType.JSON);
+}

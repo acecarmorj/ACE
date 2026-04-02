@@ -1,0 +1,24 @@
+Abas criadas pela API:
+
+1. Agentes
+Campos:
+uid | nome | matricula | senhaHash | updatedAt
+
+2. Imoveis
+Campos:
+uid | morador | telefone | microarea | quarteirao | bairro | logradouro | numero | complemento | tipo | referencia | obs | address_key | last_lat | last_lng | last_visit_at | updatedAt
+
+3. Visitas
+Campos:
+uid | sheet_name | data | hora | agente | matricula | microarea | quarteirao | bairro | logradouro | numero | tipo | situacao | morador | telefone | property_uid | deposits | deposit_count | deposit_focus_breakdown | deposit_focus_count | deposit_with_focus | foco | focus_count | acessou_caixa_agua | larvicida | larvicida_qtd | adulticida | adulticida_qtd | tubitos_qtd | card_code | card_virtual_url | obs | gps_lat | gps_lng | gps_acc | foto_url | photo_data_url | foto_drive_id | assinatura_data_url | assinatura_em | relatorio_pdf_url | relatorio_pdf_drive_id | updatedAt
+
+4. Metrics_Diarias
+Campos:
+reference_date | total_visitas | imoveis_visitados | abertos | fechados | total | recuperados | pendencias | depositos_encontrados | depositos_com_foco | tubitos_qtd | taxa_infestacao | cobertura_gps | retornos | focos | updatedAt
+
+5. Config
+Campos:
+key | value | description
+
+Observação importante:
+`microarea` e `quarteirao` são campos textuais/codificados. Eles devem aceitar valores como `M02`, `Centro 23`, `9/01`, `13/1`, `6/01` e outros formatos operacionais do território.

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#21563c">
+  <title>ACE Campo | Carmo/RJ | Alternativo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./assets/ace-theme.css">
+  <link rel="stylesheet" href="./assets/ace-theme-alt.css">
+</head>
+<body>
+  <div id="loginScreen" class="login-shell">
+    <div class="login-card">
+      <div class="brand-mark" style="margin:0 auto 14px">🩺</div>
+      <h1>ACE Campo</h1>
+      <p>Sistema mobile-first para visitas, cadastro territorial e sincronização com Google Sheets.</p>
+
+      <div class="field">
+        <label for="loginAgent">Agente</label>
+        <select id="loginAgent"></select>
+      </div>
+
+      <div class="field">
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" type="password" placeholder="Digite sua senha">
+      </div>
+
+      <div class="login-actions">
+        <button class="btn btn-primary" id="loginBtn">Entrar no sistema</button>
+        <button class="btn btn-soft" id="openAdminBtn">Cadastro de ACE</button>
+      </div>
+
+      <div id="loginMessage" class="field-help" style="margin-top:14px;text-align:center;color:#d6eadc"></div>
+    </div>
+  </div>
+
+  <div id="appShell" class="page-shell hidden">
+    <header class="topbar">
+      <div class="topbar-row">
+        <div class="brand-mark">🩺</div>
+        <div class="brand-copy">
+          <h1>ACE Campo | Visitas e vigilancia territorial</h1>
+          <p id="headerSubtitle">Sistema local pronto para uso em campo</p>
+        </div>
+        <div class="chip-row">
+          <div id="syncChip" class="chip">Configurar API</div>
+          <button id="headerAdminBtn" class="chip" type="button">Agentes</button>
+          <button id="logoutBtn" class="chip" type="button">Sair</button>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-screen="visita" type="button">🏠 Visita</button>
+        <button class="tab-btn" data-screen="imoveis" type="button">📋 Imóveis</button>
+        <button class="tab-btn" data-screen="mapa" type="button">🗺️ Mapa</button>
+        <button class="tab-btn" data-screen="painel" type="button">📊 Painel</button>
+      </nav>
+    </header>
+
+    <div class="hero-grid">
+      <div class="hero-card">
+        <small>Visitas do dia</small>
+        <strong id="heroVisits">0</strong>
+        <span id="heroVisitsNote">Sem registros até o momento.</span>
+      </div>
+      <div class="hero-card is-focus">
+        <small>Focos identificados</small>
+        <strong id="heroFocuses">0</strong>
+        <span id="heroFocusesNote">Taxa de infestação 0%.</span>
+      </div>
+      <div class="hero-card is-accent">
+        <small>GPS capturado</small>
+        <strong id="heroGps">0%</strong>
+        <span id="heroGpsNote">Cobertura territorial do dia.</span>
+      </div>
+      <div class="hero-card is-warn">
+        <small>Retornos necessários</small>
+        <strong id="heroReturns">0</strong>
+        <span id="heroReturnsNote">Imóveis que exigem nova passagem.</span>
+      </div>
+      <div class="hero-card is-priority">
+        <small>Prioridade operacional</small>
+        <strong id="heroPriorityTitle">Selecione um imóvel e registre a primeira visita.</strong>
+        <span id="heroPriorityNote">O sistema destaca bairros críticos, pendências e sincronização em tempo real.</span>
+      </div>
+      <div class="hero-card is-priority">
+        <small>Leitura do cartão virtual</small>
+        <strong id="heroCardTitle">Informe o código do cartão na visita para liberar o cartão virtual.</strong>
+        <span id="heroCardNote">O QR code poderá apontar para <code>cartao.html?codigo=...</code>.</span>
+      </div>
+    </div>
+
+    <main>
+      <section id="screen-visita" class="screen active">
+        <div class="screen-head">
+          <div class="screen-head-copy">
+            <strong>Registro de visita em campo</strong>
+            <span>Fluxo otimizado para tablet, leitura em ambiente externo e internet instável.</span>
+          </div>
+          <div class="screen-badge">🏠</div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Imóvel selecionado</h2>
+          <p class="card-note">Use o cadastro para localizar, editar e abrir a visita do imóvel mais próximo.</p>
+          <div id="selectedPropertyCard" class="selected-card">
+            <h3>Nenhum imóvel selecionado</h3>
+            <p>Abra a aba de imóveis, pesquise o endereço e toque em <strong>Visitar</strong>.</p>
+          </div>
+          <div class="btn-row" style="margin-top:16px">
+            <button class="btn btn-soft" id="goToPropertiesBtn" type="button">Selecionar ou cadastrar imóvel</button>
+            <button class="btn btn-secondary" id="captureGpsBtn" type="button">Capturar GPS</button>
+          </div>
+          <div id="gpsStatus" class="meta-pills" style="margin-top:16px"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Atalhos de registro</h2>
+          <p class="card-note">Modelos rápidos para agilizar visitas repetitivas sem perder consistência do dado.</p>
+          <div class="quick-grid">
+            <button class="quick-btn" data-preset="padrao" type="button">
+              <strong>Visita padrão</strong>
+              <span>Abre imóvel, zera foco e mantém fluxo simples.</span>
+            </button>
+            <button class="quick-btn" data-preset="fechado" type="button">
+              <strong>Fechado</strong>
+              <span>Marca fechamento e prepara retorno.</span>
+            </button>
+            <button class="quick-btn" data-preset="recuperado" type="button">
+              <strong>Recuperado</strong>
+              <span>Marca retorno concluído após imóvel fechado.</span>
+            </button>
+            <button class="quick-btn" data-preset="foco" type="button">
+              <strong>Foco + coleta</strong>
+              <span>Ativa foco, depósito com foco e tubitos.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Dados essenciais da visita</h2>
+          <div class="grid two">
+            <div class="field">
+              <label for="visitDate">Data</label>
+              <input id="visitDate" type="date">
+            </div>
+            <div class="field">
+              <label for="visitTime">Hora</label>
+              <input id="visitTime" type="time">
+            </div>
+          </div>
+
+          <div class="grid two" style="margin-top:16px">
+            <div class="field">
+              <label>Microárea</label>
+              <div class="stepper">
+                <button type="button" data-step-target="visitMicroarea" data-step="-1">−</button>
+                <input id="visitMicroarea" type="number" min="0" value="1">
+                <button type="button" data-step-target="visitMicroarea" data-step="1">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Quarteirão</label>
+              <div class="stepper">
+                <button type="button" data-step-target="visitQuarteirao" data-step="-1">−</button>
+                <input id="visitQuarteirao" type="number" min="0" value="1">
+                <button type="button" data-step-target="visitQuarteirao" data-step="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid two" style="margin-top:16px">
+            <div class="field">
+              <label>Situação do imóvel</label>
+              <div id="situacaoChoices" class="choice-grid"></div>
+            </div>
+            <div class="field">
+              <label>Foco encontrado</label>
+              <div id="focusChoices" class="choice-grid"></div>
+            </div>
+          </div>
+
+          <div class="grid two" style="margin-top:16px">
+            <div class="field">
+              <label>Quantidade de focos</label>
+              <div class="stepper">
+                <button type="button" data-step-target="visitFocusQty" data-step="-1">−</button>
+                <input id="visitFocusQty" type="number" min="0" value="0">
+                <button type="button" data-step-target="visitFocusQty" data-step="1">+</button>
+              </div>
+              <div class="field-help">Mantém o quantitativo técnico de focos confirmados na visita.</div>
+            </div>
+            <div class="field">
+              <label>Tubitos coletados</label>
+              <div class="stepper">
+                <button type="button" data-step-target="visitTubitosQty" data-step="-1">−</button>
+                <input id="visitTubitosQty" type="number" min="0" value="0">
+                <button type="button" data-step-target="visitTubitosQty" data-step="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid two" style="margin-top:16px">
+            <div class="field">
+              <label>Acessou caixa d'água?</label>
+              <div id="waterAccessChoices" class="choice-grid"></div>
+            </div>
+            <div class="field">
+              <label>Código do cartão / QR</label>
+              <input id="visitCardCode" type="text" placeholder="Ex.: CV-000123">
+              <div class="field-help">Esse código será usado para exibir o cartão de visitas virtual em <code>cartao.html</code>.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Depósitos e controle de foco</h2>
+          <p class="card-note">Registre quantidade por tipo e, quando necessário, marque <strong>Depósito com foco</strong> com a quantidade correspondente.</p>
+          <div id="depositGrid" class="deposit-grid"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Tratamento, foto e observações</h2>
+          <div class="grid two">
+            <div class="field">
+              <label for="visitLarvicida">Larvicida</label>
+              <select id="visitLarvicida"></select>
+            </div>
+            <div class="field">
+              <label>Quantidade de larvicida</label>
+              <div class="stepper">
+                <button type="button" data-step-target="visitLarvicidaQty" data-step="-1">−</button>
+                <input id="visitLarvicidaQty" type="number" min="0" value="0">
+                <button type="button" data-step-target="visitLarvicidaQty" data-step="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid two" style="margin-top:16px">
+            <div class="field">
+              <label for="visitAdulticida">Adulticida</label>
+              <select id="visitAdulticida"></select>
+            </div>
+            <div class="field">
+              <label>Quantidade de adulticida</label>
+              <div class="stepper">
+                <button type="button" data-step-target="visitAdulticidaQty" data-step="-1">−</button>
+                <input id="visitAdulticidaQty" type="number" min="0" value="0">
+                <button type="button" data-step-target="visitAdulticidaQty" data-step="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:16px">
+            <label for="visitObs">Observações</label>
+            <textarea id="visitObs" placeholder="Registre particularidades do imóvel, orientação ao morador, necessidade de retorno e demais observações."></textarea>
+          </div>
+
+          <div class="field" style="margin-top:16px">
+            <label>Atalhos de observação</label>
+            <div id="quickNotes" class="meta-pills"></div>
+          </div>
+
+          <div class="btn-row" style="margin-top:16px">
+            <button class="btn btn-warn" id="takePhotoBtn" type="button">Adicionar foto</button>
+            <button class="btn btn-soft" id="openCardPreviewBtn" type="button">Ver cartão virtual</button>
+          </div>
+
+          <input id="photoInput" type="file" accept="image/*" capture="environment" class="hidden">
+          <div id="photoPreview" class="photo-preview hidden"></div>
+
+          <div class="btn-row" style="margin-top:16px">
+            <button class="btn btn-soft" id="cancelEditBtn" type="button">Cancelar edição</button>
+            <button class="btn btn-primary" id="saveVisitBtn" type="button">Salvar visita</button>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="card">
+            <h2 class="section-title">Histórico do imóvel</h2>
+            <div id="selectedHistory" class="history-list"></div>
+          </div>
+          <div class="card">
+            <h2 class="section-title">Resumo da visita em edição</h2>
+            <div id="visitSummary" class="insight-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Últimas visitas do dia</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Endereço</th>
+                  <th>Foco</th>
+                  <th>Depósitos com foco</th>
+                  <th>Caixa d'água</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="todayVisitsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-imoveis" class="screen">
+        <div class="screen-head">
+          <div class="screen-head-copy">
+            <strong>Cadastro, consulta e atualização cadastral</strong>
+            <span>Busca por proximidade, histórico resumido e edição rápida do imóvel.</span>
+          </div>
+          <div class="screen-badge">📋</div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Cadastro do imóvel</h2>
+          <div class="grid two">
+            <div class="field">
+              <label for="propMorador">Morador / responsável</label>
+              <input id="propMorador" type="text" placeholder="Nome completo">
+            </div>
+            <div class="field">
+              <label for="propTelefone">Telefone</label>
+              <input id="propTelefone" type="text" placeholder="Contato">
+            </div>
+          </div>
+
+          <div class="grid three" style="margin-top:16px">
+            <div class="field">
+              <label for="propBairro">Bairro</label>
+              <select id="propBairro"></select>
+            </div>
+            <div class="field">
+              <label for="propLogradouro">Logradouro</label>
+              <input id="propLogradouro" type="text" placeholder="Rua, avenida, estrada">
+            </div>
+            <div class="field">
+              <label for="propNumero">Número</label>
+              <input id="propNumero" type="text" placeholder="Número">
+            </div>
+          </div>
+
+          <div class="grid three" style="margin-top:16px">
+            <div class="field">
+              <label for="propComplemento">Complemento</label>
+              <input id="propComplemento" type="text" placeholder="Casa, bloco, lote, referência">
+            </div>
+            <div class="field">
+              <label for="propTipo">Tipo de imóvel</label>
+              <select id="propTipo"></select>
+            </div>
+            <div class="field">
+              <label for="propReferencia">Ponto de referência</label>
+              <input id="propReferencia" type="text" placeholder="Escola, praça, comércio">
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:16px">
+            <label for="propObs">Observações cadastrais</label>
+            <textarea id="propObs" placeholder="Informações úteis para as próximas visitas."></textarea>
+          </div>
+
+          <div class="btn-row" style="margin-top:16px">
+            <button class="btn btn-primary" id="savePropertyBtn" type="button">Salvar imóvel</button>
+            <button class="btn btn-soft" id="clearPropertyBtn" type="button">Limpar formulário</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Consulta de imóveis</h2>
+          <div class="grid two">
+            <div class="field">
+              <label for="propertySearch">Pesquisa</label>
+              <input id="propertySearch" type="text" placeholder="Nome, bairro, rua, número, telefone ou referência">
+            </div>
+            <div class="field">
+              <label for="propertySort">Ordenação</label>
+              <select id="propertySort">
+                <option value="distance">Por proximidade do agente</option>
+                <option value="bairro">Por bairro / logradouro</option>
+                <option value="recent">Última visita mais recente</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary" id="refreshPropertiesBtn" type="button">Atualizar base online</button>
+            <button class="btn btn-soft" id="captureGpsPropertyBtn" type="button">Atualizar GPS do agente</button>
+          </div>
+          <div id="propertyList" class="property-list" style="margin-top:16px"></div>
+        </div>
+      </section>
+
+      <section id="screen-mapa" class="screen">
+        <div class="screen-head">
+          <div class="screen-head-copy">
+            <strong>Mapa operacional do dia</strong>
+            <span>Visualização territorial, focos confirmados, retornos e pontos críticos com GPS.</span>
+          </div>
+          <div class="screen-badge">🗺️</div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Mapa de atuação e calor de focos</h2>
+          <div id="fieldMap" class="map-shell"></div>
+          <div class="legend">
+            <span><i class="dot ok"></i> Visita sem foco</span>
+            <span><i class="dot focus"></i> Foco confirmado</span>
+            <span><i class="dot return"></i> Fechado / retorno</span>
+            <span><i class="dot accent"></i> Calor territorial</span>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="card">
+            <h2 class="section-title">Territórios prioritários</h2>
+            <div id="mapInsights" class="insight-list"></div>
+          </div>
+          <div class="card">
+            <h2 class="section-title">Últimos pontos com GPS</h2>
+            <div id="gpsTimeline" class="history-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-painel" class="screen">
+        <div class="screen-head">
+          <div class="screen-head-copy">
+            <strong>Painel rápido do aparelho</strong>
+            <span>Consolidação local para conferência do agente antes da sincronização.</span>
+          </div>
+          <div class="screen-badge">📊</div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Indicadores do dia</h2>
+          <div id="localMetricGrid" class="metric-grid"></div>
+        </div>
+
+        <div class="grid two">
+          <div class="card">
+            <h2 class="section-title">Depósitos encontrados</h2>
+            <div id="localDepositSummary" class="ranking-list"></div>
+          </div>
+          <div class="card">
+            <h2 class="section-title">Recomendações automáticas</h2>
+            <div id="localRecommendations" class="insight-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Ações do dia</h2>
+          <div class="btn-row">
+            <button class="btn btn-secondary" id="syncNowBtn" type="button">Sincronizar agora</button>
+            <button class="btn btn-soft" id="dailyReportBtn" type="button">Gerar relatório do dia</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="adminModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3>Cadastro de agentes</h3>
+      <div class="grid three">
+        <div class="field">
+          <label for="agentName">Nome</label>
+          <input id="agentName" type="text" placeholder="Nome completo">
+        </div>
+        <div class="field">
+          <label for="agentCode">Matrícula</label>
+          <input id="agentCode" type="text" placeholder="Ex.: ACE001">
+        </div>
+        <div class="field">
+          <label for="agentPassword">Senha</label>
+          <input id="agentPassword" type="password" placeholder="Senha do agente">
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-primary" id="saveAgentBtn" type="button">Salvar agente</button>
+        <button class="btn btn-soft" id="closeAdminModalBtn" type="button">Fechar</button>
+      </div>
+      <div id="agentList" class="history-list" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div id="syncStatus" class="sync-banner">Pronto</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./assets/runtime-config.js"></script>
+  <script src="./assets/index-core.js"></script>
+  <script src="./assets/index-render.js"></script>
+  <script src="./assets/index-actions.js"></script>
+</body>
+</html>
