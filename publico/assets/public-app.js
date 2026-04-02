@@ -73,7 +73,12 @@
       return areaDictionary[normalized] || normalized;
     },
     normalizeQuarter: function (value) {
-      var normalized = utils.normalizeText(value)
+      var raw = String(value || '').trim();
+      var isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        raw = String(Number(isoMatch[3])) + '/' + String(Number(isoMatch[2]));
+      }
+      var normalized = utils.normalizeText(raw)
         .replace(/^Q\s*-\s*/,'')
         .replace(/^Q\s+/,'')
         .replace(/\s+/g,'')

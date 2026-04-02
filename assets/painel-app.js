@@ -105,6 +105,15 @@
       .replace(/\s*\/\s*/g, '/');
   }
 
+  function normalizeQuarterDateValue(value) {
+    var text = String(value || '').trim();
+    var match = text.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) {
+      return '';
+    }
+    return String(Number(match[3])) + '/' + String(Number(match[2]));
+  }
+
   function normalizePropertyComplement(value) {
     var label = String(value || '').trim().toLowerCase();
     if (!label) {
@@ -135,7 +144,16 @@
   }
 
   function normalizeQuarteirao(value) {
-    return normalizeLabel(String(value || '').replace(/^q\s*[-/]?\s*/i, ''));
+    var raw = String(value || '').trim();
+    var dateValue = normalizeQuarterDateValue(raw);
+    if (dateValue) {
+      raw = dateValue;
+    }
+    return normalizeLabel(raw.replace(/^q\s*[-/]?\s*/i, ''));
+  }
+
+  function normalizeTerritoryCandidate(value) {
+    return normalizeLabel(String(value || '').replace(/^[A-Z0-9]{1,8}\s*-\s*/i, ''));
   }
 
   function getFeatureTerritoryName(feature) {
@@ -1505,8 +1523,8 @@
   }
 
   function resolvePolygonForVisit(visit) {
-    var visitQuarteirao = normalizeQuarteirao(visit.quarteirao);
-    var visitTerritory = normalizeLabel(visit.bairro);
+    var visitQuarteirao = normalizeQuarteirao(visit.gpsQuarteirao || visit.quarteirao);
+    var visitTerritory = normalizeTerritoryCandidate(visit.gpsTerritory || visit.bairro);
     var directMatch;
 
     if (visitQuarteirao) {
@@ -1535,8 +1553,8 @@
   }
 
   function resolveTerritoryPointForVisit(visit) {
-    var visitQuarteirao = normalizeQuarteirao(visit.quarteirao);
-    var visitTerritory = normalizeLabel(visit.bairro);
+    var visitQuarteirao = normalizeQuarteirao(visit.gpsQuarteirao || visit.quarteirao);
+    var visitTerritory = normalizeTerritoryCandidate(visit.gpsTerritory || visit.bairro);
     var directMatch;
 
     if (visitQuarteirao) {
@@ -1776,6 +1794,7 @@
 
     var points = [];
     var heat = {};
+    var heatPoints = [];
 
     renderTerritoryLayers(visits, points);
 
@@ -1789,6 +1808,7 @@
         heat[key] = { lat: mapCoordinate.lat, lng: mapCoordinate.lng, weight: 0 };
       }
       heat[key].weight += Math.max(1, visit.focusCount || visit.depositFocusCount || 1);
+      heatPoints.push([mapCoordinate.lat, mapCoordinate.lng, Math.max(0.2, Math.min(8, (visit.focusCount || 0) + (visit.depositFocusCount || 0) || 1))]);
       if (state.mapToggles.visits) {
         var marker = L.circleMarker([mapCoordinate.lat, mapCoordinate.lng], {
         radius: visit.foco === 'Sim' ? 8 : (visit.situacao === 'Fechado' || visit.situacao === 'Recusa' ? 7 : 6),
@@ -1808,20 +1828,36 @@
     });
 
     if (state.mapToggles.heat) {
-      Object.keys(heat).forEach(function (key) {
-      var item = heat[key];
-      var heatVisual = getHeatVisual(item.weight);
-      var circle = L.circle([item.lat, item.lng], {
-        radius: 90 + (item.weight * 22),
-        color: heatVisual.stroke,
-        weight: 1,
-        fillColor: heatVisual.fill,
-        fillOpacity: heatVisual.opacity
-      }).addTo(state.map);
-      circle.bindPopup('Mapa de calor: ' + item.weight + ' ocorrência(s) ponderadas.');
-      state.mapLayers.push(circle);
-        points.push([item.lat, item.lng]);
-      });
+      if (window.L && typeof L.heatLayer === 'function' && heatPoints.length) {
+        var heatLayer = L.heatLayer(heatPoints, {
+          radius: 34,
+          blur: 28,
+          maxZoom: 16,
+          minOpacity: 0.4,
+          gradient: {
+            0.15: '#79c18f',
+            0.45: '#e8c24b',
+            0.75: '#d94b5a',
+            1: '#8e1424'
+          }
+        }).addTo(state.map);
+        state.mapLayers.push(heatLayer);
+      } else {
+        Object.keys(heat).forEach(function (key) {
+          var item = heat[key];
+          var heatVisual = getHeatVisual(item.weight);
+          var circle = L.circle([item.lat, item.lng], {
+            radius: 90 + (item.weight * 22),
+            color: heatVisual.stroke,
+            weight: 1,
+            fillColor: heatVisual.fill,
+            fillOpacity: heatVisual.opacity
+          }).addTo(state.map);
+          circle.bindPopup('Mapa de calor: ' + item.weight + ' ocorrência(s) ponderadas.');
+          state.mapLayers.push(circle);
+          points.push([item.lat, item.lng]);
+        });
+      }
     }
 
     if (points.length) {
