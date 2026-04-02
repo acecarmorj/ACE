@@ -466,7 +466,7 @@
     var perStreet = {};
     var perDay = {};
     var monitoredAreas = {};
-    var heatPoints = [];
+    var heatBuckets = { low: [], medium: [], high: [] };
     var visitPoints = [];
     var totalDeposits = 0;
 
@@ -551,7 +551,8 @@
       }
 
       if (visitPoint) {
-        heatPoints.push([visitPoint.lat, visitPoint.lng, utils.clamp((focusSignal > 0 ? focusSignal : 1), 0.2, 8)]);
+        var tone = getPublicVisitTone(visit);
+        heatBuckets[tone.key].push([visitPoint.lat, visitPoint.lng, utils.clamp((focusSignal > 0 ? focusSignal : 1), 0.2, 8)]);
         visitPoints.push({
           lat: visitPoint.lat,
           lng: visitPoint.lng,
@@ -561,7 +562,10 @@
           hora: visit.hora,
           situacao: visit.situacao,
           focusSignals: focusSignal,
-          source: visitPoint.source
+          source: visitPoint.source,
+          toneKey: tone.key,
+          markerFill: tone.markerFill,
+          markerStroke: tone.markerStroke
         });
       }
     });
@@ -570,8 +574,9 @@
       var bucket = perAreaQuarter[key];
       var point = resolvePublicPoint(bucket.area, bucket.quarter);
       var intensity = bucket.focusSignals > 0 ? bucket.focusSignals : bucket.visits * 0.35;
+      var bucketTone = bucket.focusSignals > 0 ? 'high' : (bucket.closed > 0 ? 'medium' : 'low');
       if (point && !bucket.gps) {
-        heatPoints.push([point[0], point[1], utils.clamp(intensity || 0.2, 0.2, 8)]);
+        heatBuckets[bucketTone].push([point[0], point[1], utils.clamp(intensity || 0.2, 0.2, 8)]);
       }
     });
 
@@ -639,7 +644,7 @@
       topStreets: topStreets,
       topQuarters: quarters,
       dailySeries: Object.keys(perDay).sort().map(function (key) { return perDay[key]; }),
-      heatPoints: heatPoints,
+      heatBuckets: heatBuckets,
       visitPoints: visitPoints,
       visitResume: visitResume
     };
@@ -878,6 +883,56 @@
     return { level: 'baixo', label: 'Baixo risco', stroke: '#2f7a52', fill: '#79c18f', opacity: 0.22 };
   }
 
+  function getPublicVisitTone(visit) {
+    if (visit.focusFound || visit.focusCount > 0 || visit.depositFocusCount > 0) {
+      return {
+        key: 'high',
+        markerFill: '#c84b4b',
+        markerStroke: '#8e1424'
+      };
+    }
+    if (/fechado|recusa/i.test(visit.situacao)) {
+      return {
+        key: 'medium',
+        markerFill: '#c78615',
+        markerStroke: '#8d5b08'
+      };
+    }
+    return {
+      key: 'low',
+      markerFill: '#2f7a52',
+      markerStroke: '#1d5e3f'
+    };
+  }
+
+  function getPublicHeatPalette(toneKey) {
+    if (toneKey === 'high') {
+      return {
+        gradient: {
+          0.2: 'rgba(200,75,75,0.08)',
+          0.55: 'rgba(200,75,75,0.28)',
+          1: 'rgba(142,20,36,0.78)'
+        }
+      };
+    }
+    if (toneKey === 'medium') {
+      return {
+        gradient: {
+          0.2: 'rgba(232,194,75,0.08)',
+          0.55: 'rgba(199,134,21,0.25)',
+          1: 'rgba(145,96,6,0.72)'
+        }
+      };
+    }
+    return {
+      gradient: {
+        0.2: 'rgba(47,122,82,0.07)',
+        0.55: 'rgba(47,122,82,0.24)',
+        1: 'rgba(24,60,44,0.68)'
+      }
+    };
+  }
+
   function renderTrend(summary) {
     var container = document.getElementById('trendBars');
     if (!summary.dailySeries.length) {
@@ -962,31 +1017,33 @@
     });
     state.polygonLayer.addTo(state.map);
 
-    if (summary.heatPoints.length && window.L && typeof L.heatLayer === 'function') {
-      state.heatLayer = L.heatLayer(summary.heatPoints, {
-        radius: 34,
-        blur: 28,
-        maxZoom: 16,
-        minOpacity: 0.42,
-        gradient: {
-          0.15: '#f2c55a',
-          0.4: '#e88b3a',
-          0.65: '#dc5648',
-          0.85: '#c73238',
-          1: '#8e1424'
-        }
-      }).addTo(state.map);
+    if (window.L && typeof L.heatLayer === 'function') {
+      var heatKeys = ['low', 'medium', 'high'].filter(function (toneKey) {
+        return summary.heatBuckets && summary.heatBuckets[toneKey] && summary.heatBuckets[toneKey].length;
+      });
+      if (heatKeys.length) {
+        state.heatLayer = L.layerGroup().addTo(state.map);
+        heatKeys.forEach(function (toneKey) {
+          var palette = getPublicHeatPalette(toneKey);
+          L.heatLayer(summary.heatBuckets[toneKey], {
+            radius: toneKey === 'low' ? 30 : 34,
+            blur: 26,
+            maxZoom: 16,
+            minOpacity: toneKey === 'low' ? 0.18 : 0.24,
+            gradient: palette.gradient
+          }).addTo(state.heatLayer);
+        });
+      }
     }
 
     state.pointLayer = L.layerGroup();
     summary.visitPoints.forEach(function (item) {
-      var score = item.focusSignals || 0;
       var marker = L.circleMarker([item.lat, item.lng], {
         pane: 'publicVisitPane',
-        radius: score > 0 ? 7.5 : 6,
-        color: '#163728',
+        radius: item.toneKey === 'high' ? 7.5 : (item.toneKey === 'medium' ? 6.75 : 6),
+        color: item.markerStroke || '#163728',
         weight: 2,
-        fillColor: score > 0 ? '#c84b4b' : '#2f7a52',
+        fillColor: item.markerFill || '#2f7a52',
         fillOpacity: 0.95
       });
       marker.bindPopup([

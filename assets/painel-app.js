@@ -284,6 +284,128 @@
     return { stroke: '#c78615', fill: '#d7a642', opacity: Math.min(0.34, 0.14 + (weight * 0.035)) };
   }
 
+  function getVisitHeatTone(visit) {
+    var hasFocus = visit.foco === 'Sim' || (visit.focusCount || 0) > 0 || (visit.depositFocusCount || 0) > 0;
+    if (hasFocus) {
+      return {
+        key: 'high',
+        markerFill: '#c34747',
+        markerStroke: '#8e1424'
+      };
+    }
+    if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
+      return {
+        key: 'medium',
+        markerFill: '#c78615',
+        markerStroke: '#8d5b08'
+      };
+    }
+    return {
+      key: 'low',
+      markerFill: '#2f7a52',
+      markerStroke: '#1d5e3f'
+    };
+  }
+
+  function getHeatTonePalette(toneKey) {
+    if (toneKey === 'high') {
+      return {
+        gradient: {
+          0.2: 'rgba(195,71,71,0.08)',
+          0.55: 'rgba(195,71,71,0.28)',
+          1: 'rgba(142,20,36,0.78)'
+        },
+        circleStroke: '#9f1f27',
+        circleFill: '#d93c47',
+        circleOpacity: 0.32
+      };
+    }
+    if (toneKey === 'medium') {
+      return {
+        gradient: {
+          0.2: 'rgba(232,194,75,0.08)',
+          0.55: 'rgba(199,134,21,0.26)',
+          1: 'rgba(145,96,6,0.72)'
+        },
+        circleStroke: '#8d5b08',
+        circleFill: '#d7a642',
+        circleOpacity: 0.28
+      };
+    }
+    return {
+      gradient: {
+        0.2: 'rgba(47,122,82,0.07)',
+        0.55: 'rgba(47,122,82,0.24)',
+        1: 'rgba(24,60,44,0.68)'
+      },
+      circleStroke: '#1d5e3f',
+      circleFill: '#4fa16f',
+      circleOpacity: 0.24
+    };
+  }
+
+  function createHeatBuckets() {
+    return { low: [], medium: [], high: [] };
+  }
+
+  function addToneHeatPoint(heatBuckets, toneKey, lat, lng, intensity) {
+    if (!heatBuckets[toneKey]) {
+      heatBuckets[toneKey] = [];
+    }
+    heatBuckets[toneKey].push([lat, lng, intensity]);
+  }
+
+  function renderToneHeatLayers(map, layerStore, heatBuckets) {
+    var toneOrder = ['low', 'medium', 'high'];
+    var added = false;
+    if (window.L && typeof L.heatLayer === 'function') {
+      toneOrder.forEach(function (toneKey) {
+        var points = heatBuckets[toneKey] || [];
+        if (!points.length) {
+          return;
+        }
+        var palette = getHeatTonePalette(toneKey);
+        var heatLayer = L.heatLayer(points, {
+          radius: toneKey === 'low' ? 30 : 34,
+          blur: 26,
+          maxZoom: 16,
+          minOpacity: toneKey === 'low' ? 0.18 : 0.24,
+          gradient: palette.gradient
+        }).addTo(map);
+        layerStore.push(heatLayer);
+        added = true;
+      });
+      return added;
+    }
+    return false;
+  }
+
+  function renderToneHeatFallback(map, layerStore, heatBuckets) {
+    ['low', 'medium', 'high'].forEach(function (toneKey) {
+      var grouped = {};
+      var palette = getHeatTonePalette(toneKey);
+      (heatBuckets[toneKey] || []).forEach(function (point) {
+        var key = point[0].toFixed(3) + '|' + point[1].toFixed(3);
+        if (!grouped[key]) {
+          grouped[key] = { lat: point[0], lng: point[1], weight: 0 };
+        }
+        grouped[key].weight += Number(point[2] || 0);
+      });
+      Object.keys(grouped).forEach(function (key) {
+        var item = grouped[key];
+        var circle = L.circle([item.lat, item.lng], {
+          radius: 90 + (item.weight * 20),
+          color: palette.circleStroke,
+          weight: 1,
+          fillColor: palette.circleFill,
+          fillOpacity: Math.min(0.62, palette.circleOpacity + (item.weight * 0.02))
+        }).addTo(map);
+        circle.bindPopup('Mapa de calor: ' + item.weight.toFixed(1).replace('.', ',') + ' ocorrencia(s) ponderadas.');
+        layerStore.push(circle);
+      });
+    });
+  }
+
   function toLocalIsoDate(date) {
     if (Object.prototype.toString.call(date) !== '[object Date]' || isNaN(date.getTime())) {
       return '';
@@ -1852,8 +1974,7 @@
     state.mapLayers = [];
 
     var points = [];
-    var heat = {};
-    var heatPoints = [];
+    var heatBuckets = createHeatBuckets();
 
     renderTerritoryLayers(visits, points);
 
@@ -1862,59 +1983,39 @@
       if (!mapCoordinate) {
         return;
       }
-      var key = mapCoordinate.lat.toFixed(3) + '|' + mapCoordinate.lng.toFixed(3);
-      if (!heat[key]) {
-        heat[key] = { lat: mapCoordinate.lat, lng: mapCoordinate.lng, weight: 0 };
-      }
-      heat[key].weight += Math.max(1, visit.focusCount || visit.depositFocusCount || 1);
-      heatPoints.push([mapCoordinate.lat, mapCoordinate.lng, Math.max(0.2, Math.min(8, (visit.focusCount || 0) + (visit.depositFocusCount || 0) || 1))]);
+      var tone = getVisitHeatTone(visit);
+      addToneHeatPoint(
+        heatBuckets,
+        tone.key,
+        mapCoordinate.lat,
+        mapCoordinate.lng,
+        Math.max(0.2, Math.min(8, (visit.focusCount || 0) + (visit.depositFocusCount || 0) || 1))
+      );
       if (state.mapToggles.visits) {
         var marker = L.circleMarker([mapCoordinate.lat, mapCoordinate.lng], {
-        radius: visit.foco === 'Sim' ? 8 : (visit.situacao === 'Fechado' || visit.situacao === 'Recusa' ? 7 : 6),
-        color: mapCoordinate.source === 'gps' ? '#fff' : '#183c2c',
-        weight: 2,
-        fillColor: visit.foco === 'Sim' ? '#c34747' : ((visit.situacao === 'Fechado' || visit.situacao === 'Recusa') ? '#c78615' : '#2f7a52'),
-        fillOpacity: 0.9
-      }).addTo(state.map);
-      marker.bindPopup('<strong>' + escapeHtml(visit.logradouro + ', ' + visit.numero) + '</strong><br>' + escapeHtml(visit.bairro) + '<br>Agente: ' + escapeHtml(visit.agente || '-') + '<br>Foco: ' + escapeHtml(visit.foco) + ' • ' + escapeHtml(String(visit.focusCount)) + (mapCoordinate.source === 'gps' ? '' : '<br><em>Posicao ajustada pelo KMZ territorial.</em>'));
-      marker.on('click', function () {
-        state.selectedVisitUid = visit.uid;
-        renderDrilldownPanel(computeMetrics(state.filteredVisits));
-      });
+          radius: tone.key === 'high' ? 8 : (tone.key === 'medium' ? 7 : 6),
+          color: mapCoordinate.source === 'gps' ? '#fff' : tone.markerStroke,
+          weight: 2,
+          fillColor: tone.markerFill,
+          fillOpacity: 0.9
+        }).addTo(state.map);
+        marker.bindPopup('<strong>' + escapeHtml(visit.logradouro + ', ' + visit.numero) + '</strong><br>' + escapeHtml(visit.bairro) + '<br>Agente: ' + escapeHtml(visit.agente || '-') + '<br>Foco: ' + escapeHtml(visit.foco) + ' • ' + escapeHtml(String(visit.focusCount)) + (mapCoordinate.source === 'gps' ? '' : '<br><em>Posicao ajustada pelo KMZ territorial.</em>'));
+        marker.on('click', function () {
+          state.selectedVisitUid = visit.uid;
+          renderDrilldownPanel(computeMetrics(state.filteredVisits));
+        });
         state.mapLayers.push(marker);
       }
       points.push([mapCoordinate.lat, mapCoordinate.lng]);
     });
 
     if (state.mapToggles.heat) {
-      if (window.L && typeof L.heatLayer === 'function' && heatPoints.length) {
-        var heatLayer = L.heatLayer(heatPoints, {
-          radius: 34,
-          blur: 28,
-          maxZoom: 16,
-          minOpacity: 0.4,
-          gradient: {
-            0.15: '#79c18f',
-            0.45: '#e8c24b',
-            0.75: '#d94b5a',
-            1: '#8e1424'
-          }
-        }).addTo(state.map);
-        state.mapLayers.push(heatLayer);
-      } else {
-        Object.keys(heat).forEach(function (key) {
-          var item = heat[key];
-          var heatVisual = getHeatVisual(item.weight);
-          var circle = L.circle([item.lat, item.lng], {
-            radius: 90 + (item.weight * 22),
-            color: heatVisual.stroke,
-            weight: 1,
-            fillColor: heatVisual.fill,
-            fillOpacity: heatVisual.opacity
-          }).addTo(state.map);
-          circle.bindPopup('Mapa de calor: ' + item.weight + ' ocorrência(s) ponderadas.');
-          state.mapLayers.push(circle);
-          points.push([item.lat, item.lng]);
+      if (!renderToneHeatLayers(state.map, state.mapLayers, heatBuckets)) {
+        renderToneHeatFallback(state.map, state.mapLayers, heatBuckets);
+        ['low', 'medium', 'high'].forEach(function (toneKey) {
+          (heatBuckets[toneKey] || []).forEach(function (item) {
+            points.push([item[0], item[1]]);
+          });
         });
       }
     }
@@ -1950,7 +2051,7 @@
     hydrateTerritoryData();
     var territoryStats = aggregateTerritoryMetrics(visits);
     var bounds = [];
-    var heatPoints = [];
+    var heatBuckets = createHeatBuckets();
 
     state.territoryPolygons.forEach(function (feature) {
       var metrics = territoryStats.rows[feature.id] || null;
@@ -1973,12 +2074,19 @@
       if (!mapCoordinate) {
         return;
       }
-      heatPoints.push([mapCoordinate.lat, mapCoordinate.lng, Math.max(0.2, Math.min(8, (visit.focusCount || 0) + (visit.depositFocusCount || 0) || 1))]);
+      var tone = getVisitHeatTone(visit);
+      addToneHeatPoint(
+        heatBuckets,
+        tone.key,
+        mapCoordinate.lat,
+        mapCoordinate.lng,
+        Math.max(0.2, Math.min(8, (visit.focusCount || 0) + (visit.depositFocusCount || 0) || 1))
+      );
       var marker = L.circleMarker([mapCoordinate.lat, mapCoordinate.lng], {
-        radius: visit.foco === 'Sim' ? 7.5 : 6,
-        color: '#163728',
+        radius: tone.key === 'high' ? 7.5 : (tone.key === 'medium' ? 6.75 : 6),
+        color: tone.markerStroke,
         weight: 2,
-        fillColor: visit.foco === 'Sim' ? '#c84b4b' : '#2f7a52',
+        fillColor: tone.markerFill,
         fillOpacity: 0.95
       }).addTo(state.publicMap);
       marker.bindPopup('<strong>' + escapeHtml((visit.data || '--') + (visit.hora ? ' ' + visit.hora : '')) + '</strong><br>' +
@@ -1990,21 +2098,8 @@
       bounds.push([mapCoordinate.lat, mapCoordinate.lng]);
     });
 
-    if (window.L && typeof L.heatLayer === 'function' && heatPoints.length) {
-      var heatLayer = L.heatLayer(heatPoints, {
-        radius: 34,
-        blur: 28,
-        maxZoom: 16,
-        minOpacity: 0.42,
-        gradient: {
-          0.15: '#f2c55a',
-          0.4: '#e88b3a',
-          0.65: '#dc5648',
-          0.85: '#c73238',
-          1: '#8e1424'
-        }
-      }).addTo(state.publicMap);
-      state.publicMapLayers.push(heatLayer);
+    if (!renderToneHeatLayers(state.publicMap, state.publicMapLayers, heatBuckets)) {
+      renderToneHeatFallback(state.publicMap, state.publicMapLayers, heatBuckets);
     }
 
     if (bounds.length) {
