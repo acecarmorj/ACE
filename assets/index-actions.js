@@ -1715,6 +1715,7 @@
     document.getElementById('appShell').classList.remove('hidden');
     document.getElementById('headerSubtitle').textContent = app.state.currentAgent.nome + ' • ' + app.state.currentAgent.matricula + ' • ' + (app.state.currentAgent.role || 'ACE');
     app.renderAll();
+    app.refreshWeather(false);
     app.captureGps(false);
   };
 
@@ -1732,9 +1733,62 @@
     app.showMessage('Sessão encerrada.', 'ok');
   };
 
+  app.refreshWeather = function (force) {
+    var cached = app.readWeatherCache();
+    if (!force && cached && app.isWeatherCacheFresh(cached)) {
+      app.renderWeatherHeader();
+      return Promise.resolve(cached);
+    }
+    if (typeof fetch !== 'function') {
+      app.renderWeatherHeader();
+      return Promise.resolve(cached || null);
+    }
+
+    app.state.weatherLoading = true;
+    app.renderWeatherHeader();
+
+    return fetch(app.buildWeatherUrl(), {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error('Falha ao consultar o clima');
+      }
+      return response.json();
+    }).then(function (payload) {
+      var snapshot = app.normalizeWeatherSnapshot(payload);
+      if (!snapshot) {
+        throw new Error('Leitura de clima invalida');
+      }
+      app.saveSystemState({
+        weatherCache: snapshot,
+        lastWeatherError: ''
+      });
+      return snapshot;
+    }).catch(function (error) {
+      app.saveSystemState({
+        lastWeatherError: error && error.message ? error.message : 'Falha ao consultar o clima'
+      });
+      return cached || null;
+    }).then(function (snapshot) {
+      app.state.weatherLoading = false;
+      app.renderWeatherHeader();
+      return snapshot;
+    });
+  };
+
+  app.startWeatherRefresh = function () {
+    if (app.state.weatherTimer) {
+      clearInterval(app.state.weatherTimer);
+    }
+    app.state.weatherTimer = setInterval(function () {
+      app.refreshWeather(false);
+    }, Number((app.CONFIG.WEATHER && app.CONFIG.WEATHER.refreshMs) || (30 * 60 * 1000)));
+  };
+
   app.registerServiceWorker = function () {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./assets/sw-acs.js?v=20260402b').catch(function () { return null; });
+      navigator.serviceWorker.register('./assets/sw-acs.js?v=20260403b').catch(function () { return null; });
     }
   };
 
@@ -1897,6 +1951,7 @@
       app.showMessage('Conexão restabelecida. Tentando sincronizar...', 'accent');
       app.bootstrapFromServer();
       app.tryAutoSync('online');
+      app.refreshWeather(true);
     });
     window.addEventListener('beforeunload', function (event) {
       if (app.getUnsyncedVisits().length) {
@@ -1930,6 +1985,8 @@
     app.renderAll();
     app.applySession();
     app.bootstrapFromServer();
+    app.refreshWeather(false);
+    app.startWeatherRefresh();
     app.registerServiceWorker();
   };
 

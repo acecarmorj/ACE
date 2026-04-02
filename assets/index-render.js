@@ -36,6 +36,39 @@
       '</div>';
   };
 
+  app.renderWeatherHeader = function () {
+    var weather = app.readWeatherCache();
+    var wrapper = document.getElementById('weatherHeader');
+    var headline = document.getElementById('weatherHeadline');
+    var meta = document.getElementById('weatherMeta');
+    var alert = document.getElementById('weatherAlert');
+    var stamp = document.getElementById('weatherStamp');
+    if (!wrapper || !headline || !meta || !alert || !stamp) {
+      return;
+    }
+
+    wrapper.className = 'weather-strip';
+    headline.textContent = 'Clima indisponivel';
+    meta.textContent = app.state.weatherLoading ? 'Atualizando clima de Carmo/RJ...' : 'Sem dados do momento.';
+    alert.textContent = app.state.weatherLoading ? 'Atualizando' : (navigator.onLine === false ? 'Offline' : 'Sem alerta');
+    alert.className = 'weather-pill' + (navigator.onLine === false ? ' is-warn' : '');
+    stamp.textContent = weather && weather.updatedAt ? 'Atualizado ' + app.formatTimeHM(weather.updatedAt) : 'Aguardando atualizacao';
+
+    if (!weather) {
+      if (navigator.onLine === false) {
+        meta.textContent = 'Sem conexao para atualizar o clima agora.';
+      }
+      return;
+    }
+
+    headline.textContent = weather.headline || 'Clima indisponivel';
+    meta.textContent = weather.meta || 'Sem leitura operacional de clima.';
+    alert.textContent = weather.alertLabel || 'Sem alerta';
+    alert.className = 'weather-pill' +
+      (weather.alertKind === 'danger' ? ' is-danger' : weather.alertKind === 'warn' ? ' is-warn' : ' is-ok');
+    stamp.textContent = 'Atualizado ' + app.formatTimeHM(weather.updatedAt) + (navigator.onLine === false ? ' • offline' : '');
+  };
+
   app.renderHero = function () {
     var snapshot = app.buildLocalSnapshot();
     var visits = snapshot.visits;
@@ -904,6 +937,7 @@
   };
 
   app.renderAll = function () {
+    app.renderWeatherHeader();
     app.renderHero();
     app.updateVisitFormFromState();
     app.fillPropertyQuickSelect();

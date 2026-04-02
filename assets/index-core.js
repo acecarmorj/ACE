@@ -34,7 +34,14 @@
     AGENT_ROLES: ['ACE', 'Supervisor', 'Administrador'],
     ADMIN_ROLES: ['Supervisor', 'Administrador'],
     MAP_CENTER: [-21.9325, -42.0275],
-    MAP_ZOOM: 13
+    MAP_ZOOM: 13,
+    WEATHER: {
+      city: 'Carmo/RJ',
+      latitude: -21.9325,
+      longitude: -42.0275,
+      timezone: 'America/Sao_Paulo',
+      refreshMs: 30 * 60 * 1000
+    }
   };
 
   app.DEPOSITS = {
@@ -102,7 +109,9 @@
     territoryHint: null,
     map: null,
     mapLayers: [],
-    visit: null
+    visit: null,
+    weatherLoading: false,
+    weatherTimer: null
   };
 
   app.emptyDepositMap = function () {
@@ -292,6 +301,22 @@
     return parts.length === 3 ? parts[2] + '/' + parts[1] + '/' + parts[0] : String(value);
   };
 
+  app.formatTimeHM = function (value) {
+    if (!value) {
+      return '--:--';
+    }
+    var text = String(value).trim();
+    var match = text.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      return match[1] + ':' + match[2];
+    }
+    match = text.match(/(\d{2}):(\d{2})/);
+    if (match) {
+      return match[1] + ':' + match[2];
+    }
+    return text;
+  };
+
   app.addressKey = function (row) {
     return [
       String(row.bairro || '').trim().toLowerCase(),
@@ -447,14 +472,18 @@
       lastBackupAt: '',
       lastBootstrapAt: '',
       pendingSync: false,
-      pendingReason: ''
+      pendingReason: '',
+      weatherCache: null,
+      lastWeatherError: ''
     }) || {
       lastSyncAt: '',
       lastSyncError: '',
       lastBackupAt: '',
       lastBootstrapAt: '',
       pendingSync: false,
-      pendingReason: ''
+      pendingReason: '',
+      weatherCache: null,
+      lastWeatherError: ''
     };
   };
 
@@ -494,8 +523,115 @@
       lastBackupAt: system.lastBackupAt || '',
       lastBootstrapAt: system.lastBootstrapAt || '',
       pendingSync: !!system.pendingSync,
-      pendingReason: system.pendingReason || ''
+      pendingReason: system.pendingReason || '',
+      weatherCache: system.weatherCache || null,
+      lastWeatherError: system.lastWeatherError || ''
     };
+  };
+
+  app.readWeatherCache = function () {
+    var system = app.readSystemState();
+    return system && system.weatherCache && typeof system.weatherCache === 'object' ? system.weatherCache : null;
+  };
+
+  app.getWeatherCodeLabel = function (code) {
+    var weatherCode = Number(code);
+    var labels = {
+      0: 'Ceu limpo',
+      1: 'Quase limpo',
+      2: 'Sol entre nuvens',
+      3: 'Nublado',
+      45: 'Nevoeiro',
+      48: 'Nevoeiro gelado',
+      51: 'Garoa fraca',
+      53: 'Garoa moderada',
+      55: 'Garoa intensa',
+      56: 'Garoa congelante',
+      57: 'Garoa congelante forte',
+      61: 'Chuva fraca',
+      63: 'Chuva moderada',
+      65: 'Chuva forte',
+      66: 'Chuva congelante',
+      67: 'Chuva congelante forte',
+      71: 'Neve fraca',
+      73: 'Neve moderada',
+      75: 'Neve forte',
+      77: 'Graos de neve',
+      80: 'Pancadas fracas',
+      81: 'Pancadas moderadas',
+      82: 'Pancadas fortes',
+      85: 'Pancadas de neve',
+      86: 'Neve intensa',
+      95: 'Trovoadas',
+      96: 'Trovoadas com granizo',
+      99: 'Trovoadas severas'
+    };
+    return labels[weatherCode] || 'Condicao variavel';
+  };
+
+  app.getWeatherAlert = function (snapshot) {
+    if (!snapshot) {
+      return { label: 'Sem leitura', kind: 'warn' };
+    }
+    if (Number(snapshot.rainChance || 0) >= 70) {
+      return { label: 'Alerta de chuva', kind: 'danger' };
+    }
+    if (Number(snapshot.uvMax || 0) >= 8) {
+      return { label: 'UV alto', kind: 'warn' };
+    }
+    if (Number(snapshot.temperature || 0) >= 32) {
+      return { label: 'Calor forte', kind: 'warn' };
+    }
+    return { label: 'Sem alerta', kind: 'ok' };
+  };
+
+  app.normalizeWeatherSnapshot = function (payload) {
+    if (!payload || !payload.current || !payload.daily) {
+      return null;
+    }
+    var current = payload.current || {};
+    var daily = payload.daily || {};
+    var temperature = Number(current.temperature_2m || 0);
+    var humidity = Math.max(0, Math.round(Number(current.relative_humidity_2m || 0)));
+    var weatherCode = Number(current.weather_code || 0);
+    var maxTemp = Array.isArray(daily.temperature_2m_max) ? Number(daily.temperature_2m_max[0] || temperature) : temperature;
+    var rainChance = Array.isArray(daily.precipitation_probability_max) ? Math.max(0, Math.round(Number(daily.precipitation_probability_max[0] || 0))) : 0;
+    var uvMax = Array.isArray(daily.uv_index_max) ? Number(daily.uv_index_max[0] || 0) : 0;
+    var weatherLabel = app.getWeatherCodeLabel(weatherCode);
+    var snapshot = {
+      city: app.CONFIG.WEATHER.city,
+      temperature: Number(temperature.toFixed(1)),
+      humidity: humidity,
+      weatherCode: weatherCode,
+      weatherLabel: weatherLabel,
+      maxTemp: Number(maxTemp.toFixed(1)),
+      rainChance: rainChance,
+      uvMax: Number(uvMax.toFixed(1)),
+      updatedAt: String(current.time || new Date().toISOString()).trim(),
+      headline: Math.round(temperature) + '°C • ' + weatherLabel,
+      meta: 'Chuva ' + rainChance + '% • UV ' + Number(uvMax.toFixed(1)) + ' • Max ' + Math.round(maxTemp) + '°C • Umid. ' + humidity + '%'
+    };
+    var alert = app.getWeatherAlert(snapshot);
+    snapshot.alertLabel = alert.label;
+    snapshot.alertKind = alert.kind;
+    return snapshot;
+  };
+
+  app.buildWeatherUrl = function () {
+    var cfg = app.CONFIG.WEATHER || {};
+    return 'https://api.open-meteo.com/v1/forecast?' +
+      'latitude=' + encodeURIComponent(String(cfg.latitude || 0)) +
+      '&longitude=' + encodeURIComponent(String(cfg.longitude || 0)) +
+      '&current=temperature_2m,relative_humidity_2m,weather_code' +
+      '&daily=temperature_2m_max,precipitation_probability_max,uv_index_max' +
+      '&timezone=' + encodeURIComponent(String(cfg.timezone || 'America/Sao_Paulo')) +
+      '&forecast_days=1';
+  };
+
+  app.isWeatherCacheFresh = function (snapshot) {
+    var refreshMs = Number((app.CONFIG.WEATHER && app.CONFIG.WEATHER.refreshMs) || 0);
+    var updatedAt = snapshot && snapshot.updatedAt ? Date.parse(snapshot.updatedAt) : 0;
+    return !!(refreshMs && updatedAt && (Date.now() - updatedAt) < refreshMs);
   };
 
   app.hydrateTerritorySource = function () {

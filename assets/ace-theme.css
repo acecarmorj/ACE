@@ -675,6 +675,71 @@ img{max-width:100%;display:block}
   flex-wrap:wrap;
 }
 
+.weather-strip{
+  flex:0 1 340px;
+  min-width:260px;
+  padding:12px 14px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.weather-strip__city{
+  display:block;
+  margin:0 0 4px;
+  font-size:.74rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#d6eadc;
+}
+
+.weather-strip strong{
+  display:block;
+  font-size:1rem;
+  line-height:1.2;
+  color:#fff;
+}
+
+.weather-strip__meta{
+  display:block;
+  margin-top:4px;
+  color:#d6eadc;
+  font-size:.8rem;
+}
+
+.weather-strip__footer{
+  margin-top:8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.weather-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.16);
+  color:#fff;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+
+.weather-pill.is-ok{background:rgba(61,150,103,.22)}
+.weather-pill.is-warn{background:rgba(199,134,21,.24)}
+.weather-pill.is-danger{background:rgba(195,71,71,.24)}
+
+.weather-stamp{
+  color:#d6eadc;
+  font-size:.74rem;
+}
+
 .chip{
   display:inline-flex;
   align-items:center;
@@ -1924,6 +1989,12 @@ th{
   .dashboard-page .card::before{margin:-18px -16px 14px}
   .chip-row{width:100%}
   .chip{flex:1 1 auto}
+  .weather-strip{
+    width:100%;
+    min-width:0;
+    order:3;
+  }
+  .weather-strip strong{font-size:.95rem}
   .brand-copy h1{font-size:1.08rem}
   .hero-card strong{font-size:1.9rem}
   .stepper{grid-template-columns:48px 1fr 48px}
