@@ -1066,6 +1066,43 @@
     });
   }
 
+  function aggregateCriticalStreets(visits) {
+    var map = {};
+    visits.forEach(function (visit) {
+      var logradouro = String(visit.logradouro || '').trim();
+      var bairro = String(visit.bairro || '').trim();
+      if (!logradouro) {
+        return;
+      }
+      var key = [bairro, logradouro].join('|').toLowerCase();
+      if (!map[key]) {
+        map[key] = {
+          nome: logradouro,
+          bairro: bairro || 'Sem bairro',
+          visitas: 0,
+          focos: 0,
+          depositosComFoco: 0,
+          pendencias: 0
+        };
+      }
+      map[key].visitas += 1;
+      map[key].focos += Number(visit.focusCount || 0) || 0;
+      map[key].depositosComFoco += Number(visit.depositFocusCount || 0) || 0;
+      if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
+        map[key].pendencias += 1;
+      }
+    });
+    return Object.keys(map).map(function (key) {
+      var row = map[key];
+      row.criticidade = row.focos + row.depositosComFoco;
+      return row;
+    }).filter(function (row) {
+      return row.criticidade > 0;
+    }).sort(function (a, b) {
+      return b.criticidade - a.criticidade || b.pendencias - a.pendencias || b.visitas - a.visitas || a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true });
+    });
+  }
+
   function renderBarCards(containerId, rows, cfg) {
     var node = document.getElementById(containerId);
     if (!rows.length) {
@@ -1121,6 +1158,24 @@
       kind: 'is-danger',
       drillField: 'logradouro'
     });
+  }
+
+  function renderCriticalStreetList(visits) {
+    var node = document.getElementById('criticalStreetList');
+    var streets;
+    if (!node) {
+      return;
+    }
+    streets = aggregateCriticalStreets(visits).slice(0, 5);
+    if (!streets.length) {
+      node.innerHTML = '<div class="insight-card"><strong>Sem rua crítica no recorte</strong><div style="margin-top:6px;color:#66727c">Quando houver focos confirmados, o painel destacará automaticamente as 5 ruas com maior criticidade.</div></div>';
+      return;
+    }
+    node.innerHTML = streets.map(function (street, index) {
+      return '<div class="insight-card"><strong>' + escapeHtml((index + 1) + '. ' + street.nome) + '</strong><div style="margin-top:6px;color:#66727c">' +
+        escapeHtml(street.bairro + ' • ' + street.visitas + ' visita(s) • ' + street.focos + ' foco(s) • ' + street.depositosComFoco + ' depósito(s) com foco' + (street.pendencias ? ' • ' + street.pendencias + ' pendência(s)' : '')) +
+        '</div></div>';
+    }).join('');
   }
 
   function renderOnScreenReport(metrics, agents, bairros, microareas, visits) {
@@ -1260,6 +1315,7 @@
     renderTable(visits);
     renderHeatMap(visits);
     renderComparatives(visits);
+    renderCriticalStreetList(visits);
     renderOnScreenReport(metrics, agents, bairros, microareas, visits);
     renderDrilldownPanel(metrics);
   }

@@ -432,6 +432,7 @@
     renderMetrics(summary);
     renderVisitSummary(summary);
     renderAttentionList(summary);
+    renderStreetAttentionList(summary);
     renderTrend(summary);
     renderMap(summary);
   }
@@ -439,6 +440,7 @@
   function buildSummary(visits) {
     var perAreaQuarter = {};
     var perArea = {};
+    var perStreet = {};
     var perDay = {};
     var monitoredAreas = {};
     var heatPoints = [];
@@ -492,6 +494,7 @@
       var areaBucket = perArea[areaKey];
       var focusSignal = visit.focusCount + visit.depositFocusCount;
       var visitPoint = resolveVisitPoint(visit);
+      var streetKey = [visit.bairro || areaKey, visit.logradouro].join('|').toLowerCase();
 
       bucket.visits += 1;
       bucket.focusSignals += focusSignal;
@@ -507,6 +510,22 @@
       areaBucket.focusVisits += visit.focusFound ? 1 : 0;
       areaBucket.depositFocus += visit.depositFocusCount;
       areaBucket.deposits += visit.depositCount;
+
+      if (visit.logradouro) {
+        if (!perStreet[streetKey]) {
+          perStreet[streetKey] = {
+            bairro: visit.bairro || utils.titleCase(areaKey || 'Sem bairro'),
+            area: areaKey,
+            logradouro: visit.logradouro,
+            visits: 0,
+            focusSignals: 0,
+            depositFocus: 0
+          };
+        }
+        perStreet[streetKey].visits += 1;
+        perStreet[streetKey].focusSignals += focusSignal;
+        perStreet[streetKey].depositFocus += visit.depositFocusCount;
+      }
 
       if (visitPoint) {
         heatPoints.push([visitPoint.lat, visitPoint.lng, utils.clamp((focusSignal > 0 ? focusSignal : 1), 0.2, 8)]);
@@ -543,6 +562,17 @@
       .map(function (key) { return perAreaQuarter[key]; })
       .sort(function (a, b) {
         return (b.focusSignals + b.depositFocus + b.visits * 0.1) - (a.focusSignals + a.depositFocus + a.visits * 0.1);
+      });
+
+    var topStreets = Object.keys(perStreet)
+      .map(function (key) { return perStreet[key]; })
+      .map(function (item) {
+        item.criticalScore = item.focusSignals + item.depositFocus;
+        return item;
+      })
+      .filter(function (item) { return item.criticalScore > 0; })
+      .sort(function (a, b) {
+        return b.criticalScore - a.criticalScore || b.visits - a.visits || a.logradouro.localeCompare(b.logradouro, 'pt-BR', { numeric: true });
       });
 
     var totalVisits = visits.length;
@@ -583,6 +613,7 @@
       totalFocusSignals: totalFocusSignals,
       gpsCoverage: totalVisits ? Math.round((gpsVisits / totalVisits) * 100) : 0,
       topAreas: topAreas,
+      topStreets: topStreets,
       topQuarters: quarters,
       dailySeries: Object.keys(perDay).sort().map(function (key) { return perDay[key]; }),
       heatPoints: heatPoints,
@@ -693,6 +724,32 @@
           '<div class="progress-row">',
             '<div class="progress-track"><div class="progress-bar" style="width:' + width + '%"></div></div>',
             '<span class="progress-value">' + score.toFixed(1).replace('.', ',') + '</span>',
+          '</div>',
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
+  function renderStreetAttentionList(summary) {
+    var container = document.getElementById('streetAttentionList');
+    var max;
+    if (!container) {
+      return;
+    }
+    if (!summary.topStreets || !summary.topStreets.length) {
+      container.innerHTML = '<div class="empty">Sem rua com foco relevante no recorte público selecionado.</div>';
+      return;
+    }
+    max = summary.topStreets[0].criticalScore || 1;
+    container.innerHTML = summary.topStreets.slice(0, 5).map(function (item) {
+      var width = Math.max(8, Math.round((item.criticalScore / max) * 100));
+      return [
+        '<div class="list-item">',
+          '<strong>' + escapeHtml(item.logradouro) + '</strong>',
+          '<span>' + escapeHtml((item.bairro || utils.titleCase(item.area || 'Sem bairro')) + ' • ' + item.visits + ' visita(s) • ' + item.focusSignals + ' sinal(is) de foco • ' + item.depositFocus + ' depósito(s) com foco') + '</span>',
+          '<div class="progress-row">',
+            '<div class="progress-track"><div class="progress-bar" style="width:' + width + '%"></div></div>',
+            '<span class="progress-value">' + escapeHtml(String(item.criticalScore)) + '</span>',
           '</div>',
         '</div>'
       ].join('');
