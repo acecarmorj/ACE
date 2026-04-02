@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./assets/public-theme.css?v=20260403l">
-  <link rel="stylesheet" href="./assets/public-theme-v2.css?v=20260403r">
+  <link rel="stylesheet" href="./assets/public-theme.css?v=20260403s">
+  <link rel="stylesheet" href="./assets/public-theme-v2.css?v=20260403s">
 </head>
 <body class="public-v2">
   <div class="public-shell">
@@ -202,6 +202,12 @@
         <div class="layout">
           <article class="card map-card">
             <div id="publicMap" class="map-shell"></div>
+            <div class="map-legend">
+              <span><i class="map-legend-dot is-low"></i> quarteirão verde: sem foco</span>
+              <span><i class="map-legend-dot is-medium"></i> quarteirão amarelo: atenção</span>
+              <span><i class="map-legend-dot is-high"></i> quarteirão vermelho: crítico</span>
+              <span><i class="map-legend-dot is-heat"></i> calor territorial</span>
+            </div>
             <div class="map-note" id="mapNote">
               O mapa destacar&aacute; automaticamente os territ&oacute;rios com maior aten&ccedil;&atilde;o no per&iacute;odo selecionado.
             </div>
@@ -299,8 +305,8 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-  <script src="./assets/runtime-config.js?v=20260403r"></script>
-  <script src="./assets/carmo-territorios-data.js?v=20260403r"></script>
-  <script src="./assets/public-app.js?v=20260403r"></script>
+  <script src="./assets/runtime-config.js?v=20260403s"></script>
+  <script src="./assets/carmo-territorios-data.js?v=20260403s"></script>
+  <script src="./assets/public-app.js?v=20260403s"></script>
 </body>
 </html>

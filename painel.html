@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Painel ACE | Carmo/RJ</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./assets/ace-theme.css?v=20260403m">
+  <link rel="stylesheet" href="./assets/ace-theme.css?v=20260403s">
 </head>
 <body class="dashboard-page">
   <div class="page-shell">
@@ -128,9 +128,10 @@
           <h2 class="section-title">Mapa de calor e ocorrências</h2>
           <div id="heatMap" class="map-shell"></div>
           <div class="legend">
+            <span><i class="dot low"></i> quarteirão verde: sem foco</span>
+            <span><i class="dot medium"></i> quarteirão amarelo: atenção</span>
+            <span><i class="dot high"></i> quarteirão vermelho: crítico</span>
             <span><i class="dot accent"></i> calor territorial</span>
-            <span><i class="dot focus"></i> foco confirmado</span>
-            <span><i class="dot return"></i> retorno / fechado</span>
             <span><i class="dot ok"></i> visita georreferenciada</span>
           </div>
         </div>
@@ -182,8 +183,8 @@
   <div id="panelStatus" class="sync-banner">Pronto</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="./assets/runtime-config.js?v=20260403p"></script>
-  <script src="./assets/carmo-territorios-data.js?v=20260403p"></script>
-  <script src="./assets/painel-app.js?v=20260403p"></script>
+  <script src="./assets/runtime-config.js?v=20260403s"></script>
+  <script src="./assets/carmo-territorios-data.js?v=20260403s"></script>
+  <script src="./assets/painel-app.js?v=20260403s"></script>
 </body>
 </html>

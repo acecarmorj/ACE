@@ -1963,6 +1963,9 @@ tbody tr:hover{
 .dot.focus{background:var(--danger-700)}
 .dot.return{background:var(--warn-700)}
 .dot.accent{background:var(--accent-700)}
+.dot.low{background:#2f7a52}
+.dot.medium{background:#e8c24b}
+.dot.high{background:#d94b5a}
 
 .login-shell{
   min-height:100vh;

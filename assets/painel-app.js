@@ -1599,6 +1599,7 @@
         map[polygon.id] = {
           visitas: 0,
           focos: 0,
+          depositosComFoco: 0,
           fechados: 0,
           recuperados: 0,
           pendencias: 0,
@@ -1609,6 +1610,7 @@
       }
       map[polygon.id].visitas += 1;
       map[polygon.id].focos += Number(visit.focusCount || 0) || 0;
+      map[polygon.id].depositosComFoco += Number(visit.depositFocusCount || 0) || 0;
       map[polygon.id].tubitos += Number(visit.tubitosQty || 0) || 0;
       if (visit.situacao === 'Fechado' || visit.situacao === 'Recusa') {
         map[polygon.id].fechados += 1;
@@ -1629,17 +1631,42 @@
     };
   }
 
+  function getTerritoryRiskLevel(focos) {
+    if (focos >= 3) {
+      return 'critico';
+    }
+    if (focos >= 1) {
+      return 'atencao';
+    }
+    return 'baixo';
+  }
+
+  function getTerritoryRiskPalette(focos) {
+    var level = getTerritoryRiskLevel(focos);
+    if (level === 'critico') {
+      return { level: level, label: 'Crítico', stroke: '#b72334', fill: '#d94b5a', opacity: 0.42 };
+    }
+    if (level === 'atencao') {
+      return { level: level, label: 'Atenção', stroke: '#c48816', fill: '#e8c24b', opacity: 0.32 };
+    }
+    return { level: level, label: 'Baixo risco', stroke: '#2f7a52', fill: '#79c18f', opacity: 0.22 };
+  }
+
   function buildTerritoryPopup(feature, metrics) {
     var lines = [];
+    var palette = metrics ? getTerritoryRiskPalette(metrics.focos) : null;
     lines.push('<div class="territory-popup">');
     lines.push('<strong>' + escapeHtml(feature.territoryName || feature.folder || 'Território') + '</strong>');
     lines.push('<span>Quarteirão: ' + escapeHtml(feature.name || '-') + '</span>');
     if (metrics) {
+      lines.push('<span>Classificação: ' + escapeHtml(palette.label) + '</span>');
       lines.push('<span>Visitas: ' + escapeHtml(String(metrics.visitas)) + '</span>');
       lines.push('<span>Focos: ' + escapeHtml(String(metrics.focos)) + '</span>');
+      lines.push('<span>Depósitos com foco: ' + escapeHtml(String(metrics.depositosComFoco)) + '</span>');
       lines.push('<span>Pendências: ' + escapeHtml(String(metrics.pendencias)) + '</span>');
       lines.push('<span>Tubitos: ' + escapeHtml(String(metrics.tubitos)) + '</span>');
     } else {
+      lines.push('<span>Classificação: Baixo risco</span>');
       lines.push('<span>Sem visita filtrada vinculada a este polígono.</span>');
     }
     lines.push('</div>');
@@ -1657,7 +1684,7 @@
     }
     node.textContent = highlightedCount + ' polígono(s) destacados no recorte. ' +
       territoryStats.matchedVisits + ' visita(s) com correspondência territorial no KMZ. ' +
-      'Os quarteirões já estão cartografados; a leitura por microárea opera pelos filtros e dados cadastrados.';
+      'Semáforo territorial: verde sem foco, amarelo com atenção e vermelho crítico.';
   }
 
   function renderTerritoryLayers(visits, bounds) {
@@ -1679,11 +1706,12 @@
     state.territoryPolygons.forEach(function (feature) {
       var metrics = territoryStats.rows[feature.id] || null;
       var shouldHighlight = !!metrics || territoryMatchesCurrentFilter(feature);
+      var palette = getTerritoryRiskPalette(metrics ? metrics.focos : 0);
       var polygon = L.polygon(feature.coordinates, {
-        color: shouldHighlight ? (metrics && metrics.focos > 0 ? '#c34747' : '#355f9f') : '#8da0ad',
+        color: shouldHighlight ? palette.stroke : '#8da0ad',
         weight: shouldHighlight ? 2.5 : 1,
-        fillColor: shouldHighlight ? (metrics && metrics.focos > 0 ? '#c34747' : '#4c7cc5') : '#dbe4e7',
-        fillOpacity: shouldHighlight ? Math.min(0.52, 0.18 + ((metrics ? metrics.visitas : 1) * 0.05)) : 0.06
+        fillColor: shouldHighlight ? palette.fill : '#dbe4e7',
+        fillOpacity: shouldHighlight ? Math.max(palette.opacity, Math.min(0.5, 0.16 + ((metrics ? metrics.visitas : 1) * 0.04))) : 0.06
       });
       polygon.bindPopup(buildTerritoryPopup(feature, metrics));
       polygon.on('click', function () {

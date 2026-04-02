@@ -801,6 +801,16 @@
     }).join('');
   }
 
+  function getPublicQuarterRisk(score) {
+    if (score >= 3) {
+      return { level: 'critico', label: 'Crítico', stroke: '#b72334', fill: '#d94b5a', opacity: 0.4 };
+    }
+    if (score >= 1) {
+      return { level: 'atencao', label: 'Atenção', stroke: '#c48816', fill: '#e8c24b', opacity: 0.3 };
+    }
+    return { level: 'baixo', label: 'Baixo risco', stroke: '#2f7a52', fill: '#79c18f', opacity: 0.22 };
+  }
+
   function renderTrend(summary) {
     var container = document.getElementById('trendBars');
     if (!summary.dailySeries.length) {
@@ -844,8 +854,10 @@
     });
 
     var quarterScores = {};
+    var quarterData = {};
     summary.topQuarters.forEach(function (item) {
       quarterScores[item.area + '|' + item.quarter] = item.focusSignals + item.depositFocus + item.visits * 0.1;
+      quarterData[item.area + '|' + item.quarter] = item;
     });
 
     var boundsPoints = [];
@@ -856,18 +868,22 @@
       }
       var quarterKey = polygon.folder + '|' + polygon.quarter;
       var score = quarterScores[quarterKey] || areaScores[polygon.folder] || 0;
-      var fillColor = colorForScore(score);
+      var detail = quarterData[quarterKey] || null;
+      var risk = getPublicQuarterRisk(detail ? detail.focusSignals : 0);
       var layer = L.polygon(polygon.coordinates, {
-        color: score > 0 ? fillColor : '#8aa497',
-        weight: score > 0 ? 1.8 : 1.1,
-        fillColor: fillColor,
-        fillOpacity: score > 0 ? 0.36 : 0.12
+        color: risk.stroke,
+        weight: detail ? 1.8 : 1.1,
+        fillColor: risk.fill,
+        fillOpacity: detail ? Math.max(risk.opacity, 0.26) : 0.12
       });
       var popupLines = [
         '<strong>' + escapeHtml(utils.titleCase(polygon.folderLabel)) + (polygon.quarterLabel ? ' - ' + escapeHtml(polygon.quarterLabel) : '') + '</strong>'
       ];
-      if (score > 0) {
-        popupLines.push('\u00cdndice p\u00fablico de aten\u00e7\u00e3o: ' + score.toFixed(1).replace('.', ','));
+      popupLines.push('Classificação: ' + risk.label);
+      if (detail) {
+        popupLines.push('Focos/sinais considerados: ' + detail.focusSignals);
+        popupLines.push('Depósitos com foco: ' + detail.depositFocus);
+        popupLines.push('Visitas públicas: ' + detail.visits);
       } else {
         popupLines.push('Sem sinal p\u00fablico relevante no recorte atual.');
       }
@@ -931,7 +947,7 @@
     }
 
     var note = summary.topAreas[0]
-      ? 'Maior aten\u00e7\u00e3o atual: ' + utils.titleCase(summary.topAreas[0].area) + '. O mapa exibe calor territorial e pontos públicos georreferenciados sem nome de morador.'
+      ? 'Maior aten\u00e7\u00e3o atual: ' + utils.titleCase(summary.topAreas[0].area) + '. Quarteirões em verde indicam baixo risco, amarelo indica atenção e vermelho indica situação crítica.'
       : 'O mapa est\u00e1 em modo informativo. Assim que houver registros p\u00fablicos no per\u00edodo, as \u00e1reas de aten\u00e7\u00e3o ser\u00e3o destacadas aqui.';
     document.getElementById('mapNote').textContent = note;
   }
