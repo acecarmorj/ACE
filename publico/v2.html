@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="./assets/public-theme.css?v=20260403l">
-  <link rel="stylesheet" href="./assets/public-theme-v2.css?v=20260403l">
+  <link rel="stylesheet" href="./assets/public-theme-v2.css?v=20260403r">
 </head>
 <body class="public-v2">
   <div class="public-shell">
@@ -25,7 +25,6 @@
         </div>
         <div class="topbar-actions">
           <span class="pill" id="statusPill">Carregando dados</span>
-          <a class="action-link" href="./index.html">Vers&atilde;o atual</a>
           <a class="action-link" href="https://acecarmorj.github.io/ACE/index.html">M&oacute;dulo ACE</a>
         </div>
       </header>
@@ -51,10 +50,10 @@
       <section class="hero">
         <article class="hero-main">
           <span class="kicker" id="heroArea">Toda a cidade</span>
-          <h2 id="heroHeadline">Painel p&uacute;blico informativo da Coordena&ccedil;&atilde;o de Combate &agrave;s Endemias</h2>
+          <h2 id="heroHeadline">Mapa p&uacute;blico de calor e panorama do per&iacute;odo</h2>
           <p id="heroDescription">
-            Este painel foi pensado para aproximar a popula&ccedil;&atilde;o das informa&ccedil;&otilde;es territoriais do munic&iacute;pio,
-            destacando mapa de calor, &aacute;reas de aten&ccedil;&atilde;o e orienta&ccedil;&otilde;es pr&aacute;ticas que ajudam a reduzir riscos no dia a dia.
+            Esta vers&atilde;o aproxima a popula&ccedil;&atilde;o das informa&ccedil;&otilde;es territoriais do munic&iacute;pio,
+            destacando as &aacute;reas que pedem mais cuidado e as atitudes simples que ajudam a reduzir riscos no dia a dia.
           </p>
           <div class="hero-badges">
             <span class="hero-badge" id="heroBadgePeriod">Recorte atual</span>
@@ -172,6 +171,16 @@
       <section class="section">
         <div class="section-head">
           <div>
+            <h2>Leitura p&uacute;blica do momento</h2>
+            <p>Uma interpreta&ccedil;&atilde;o simples dos dados do per&iacute;odo para ajudar a popula&ccedil;&atilde;o a entender o cen&aacute;rio atual e como colaborar.</p>
+          </div>
+        </div>
+        <div id="publicInsightReport" class="public-report-grid"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
             <h2>Mapa p&uacute;blico de calor e recorte por &aacute;rea</h2>
             <p>O mapa abaixo permite observar a distribui&ccedil;&atilde;o territorial dos sinais de aten&ccedil;&atilde;o no per&iacute;odo selecionado, com leitura segura para exibi&ccedil;&atilde;o p&uacute;blica.</p>
           </div>
@@ -208,8 +217,8 @@
 
             <article class="card list-card">
               <span class="card-kicker">Focos por rua</span>
-              <h3>5 ruas que pedem mais atenção</h3>
-              <p>Leitura pública das ruas com maior concentração de sinais de foco no recorte atual.</p>
+              <h3>5 ruas que pedem mais aten&ccedil;&atilde;o</h3>
+              <p>Leitura p&uacute;blica das ruas com maior concentra&ccedil;&atilde;o de sinais de foco no recorte atual.</p>
               <div id="streetAttentionList" class="list"></div>
             </article>
 
@@ -278,7 +287,7 @@
             <h3>Informa&ccedil;&atilde;o p&uacute;blica que orienta e protege</h3>
             <p>Esta vers&atilde;o foi pensada para apresenta&ccedil;&atilde;o institucional, exibi&ccedil;&atilde;o em reuni&otilde;es, divulga&ccedil;&atilde;o digital e consulta pela popula&ccedil;&atilde;o.</p>
           </div>
-          <a class="action-link" href="./index.html">Comparar com a vers&atilde;o atual</a>
+          <div class="edu-note-tag">Vers&atilde;o p&uacute;blica 2.0</div>
         </div>
       </section>
 
@@ -290,8 +299,8 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-  <script src="./assets/runtime-config.js?v=20260403q"></script>
-  <script src="./assets/carmo-territorios-data.js?v=20260403q"></script>
-  <script src="./assets/public-app.js?v=20260403q"></script>
+  <script src="./assets/runtime-config.js?v=20260403r"></script>
+  <script src="./assets/carmo-territorios-data.js?v=20260403r"></script>
+  <script src="./assets/public-app.js?v=20260403r"></script>
 </body>
 </html>

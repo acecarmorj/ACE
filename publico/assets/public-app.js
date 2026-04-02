@@ -431,6 +431,7 @@
     renderHero(summary);
     renderMetrics(summary);
     renderVisitSummary(summary);
+    renderPublicInsightReport(summary);
     renderAttentionList(summary);
     renderStreetAttentionList(summary);
     renderTrend(summary);
@@ -664,10 +665,10 @@
     var topArea = summary.topAreas[0];
     document.getElementById('heroArea').textContent = areaLabel;
     document.getElementById('heroHeadline').textContent = summary.totalVisits
-      ? 'Mapa de calor e leitura p\u00fablica da Coordena\u00e7\u00e3o de Combate \u00e0s Endemias'
-      : 'Painel p\u00fablico informativo da Coordena\u00e7\u00e3o de Combate \u00e0s Endemias';
+      ? 'Mapa p\u00fablico de calor e panorama do per\u00edodo'
+      : 'Mapa p\u00fablico de calor e orienta\u00e7\u00e3o preventiva';
     document.getElementById('heroDescription').textContent = summary.totalVisits
-      ? 'O painel mostra um recorte agregado das a\u00e7\u00f5es realizadas no territ\u00f3rio e das \u00e1reas que merecem maior aten\u00e7\u00e3o coletiva.'
+      ? 'O painel mostra um recorte agregado das a\u00e7\u00f5es realizadas no territ\u00f3rio, destacando as \u00e1reas e ruas que pedem mais cuidado coletivo.'
       : 'Mesmo sem registros p\u00fablicos no per\u00edodo selecionado, esta p\u00e1gina continua orientando a popula\u00e7\u00e3o sobre preven\u00e7\u00e3o e cuidado coletivo.';
     document.getElementById('heroBadgePeriod').textContent = 'Recorte atual: \u00faltimos ' + state.days + ' dias';
     document.getElementById('heroBadgeUpdated').textContent = 'Atualizado em ' + state.fetchedAt;
@@ -706,6 +707,50 @@
     setText('visitInfestation', (visitResume.infestation || 0).toFixed(1).replace('.', ',') + '%');
   }
 
+  function renderPublicInsightReport(summary) {
+    var node = document.getElementById('publicInsightReport');
+    var topArea = summary.topAreas[0] || null;
+    var topStreet = summary.topStreets && summary.topStreets[0] ? summary.topStreets[0] : null;
+    var visitResume = summary.visitResume || {};
+    var items;
+    if (!node) {
+      return;
+    }
+    if (!summary.totalVisits) {
+      node.innerHTML = [
+        '<article class="card public-report-card">',
+          '<span class="card-kicker">Leitura para a popula\u00e7\u00e3o</span>',
+          '<h3>Painel em observa\u00e7\u00e3o</h3>',
+          '<p>Assim que houver novas visitas sincronizadas, esta \u00e1rea passar\u00e1 a explicar de forma simples quais territ\u00f3rios pedem mais cuidado e como a popula\u00e7\u00e3o pode colaborar.</p>',
+        '</article>'
+      ].join('');
+      return;
+    }
+    items = [
+      {
+        title: 'Panorama do per\u00edodo',
+        text: 'Nos \u00faltimos ' + state.days + ' dias, o painel recebeu ' + summary.totalVisits + ' visita(s) p\u00fablicas em ' + summary.monitoredAreas + ' territ\u00f3rio(s). O \u00edndice de infesta\u00e7\u00e3o do recorte est\u00e1 em ' + (visitResume.infestation || 0).toFixed(1).replace('.', ',') + '%.'
+      },
+      {
+        title: 'Onde vale refor\u00e7ar o cuidado',
+        text: topArea ?
+          ('A \u00e1rea com maior aten\u00e7\u00e3o no momento \u00e9 ' + utils.titleCase(topArea.area) + '. ' + (topStreet ? ('Entre as ruas do recorte, o maior sinal de foco aparece em ' + topStreet.logradouro + '.') : 'A leitura territorial indica concentra\u00e7\u00e3o maior de sinais de foco nessa regi\u00e3o.')) :
+          'Neste momento, o recorte n\u00e3o aponta concentra\u00e7\u00e3o relevante de foco em uma \u00e1rea espec\u00edfica.'
+      },
+      {
+        title: 'Como a popula\u00e7\u00e3o pode ajudar agora',
+        text: visitResume.infestation >= 15 ?
+          'Vale redobrar a checagem de recipientes com \u00e1gua, caixas, calhas, quintais e pontos de ac\u00famulo de lixo. Quanto mais cedo o foco \u00e9 eliminado, menor o risco para o bairro.' :
+          (visitResume.pending > 0 ?
+            'Mesmo com cen\u00e1rio mais est\u00e1vel, ainda vale manter quintais, calhas e recipientes sob revis\u00e3o frequente e avisar a equipe se houver local insalubre ou foco recorrente.' :
+            'O momento permite manter preven\u00e7\u00e3o de rotina: revisar quintal, eliminar \u00e1gua parada, observar terrenos baldios e comunicar situa\u00e7\u00f5es persistentes.')
+      }
+    ];
+    node.innerHTML = items.map(function (item) {
+      return '<article class="card public-report-card"><span class="card-kicker">Leitura para a popula\u00e7\u00e3o</span><h3>' + escapeHtml(item.title) + '</h3><p>' + escapeHtml(item.text) + '</p></article>';
+    }).join('');
+  }
+
   function renderAttentionList(summary) {
     var container = document.getElementById('attentionList');
     if (!summary.topAreas.length) {
@@ -737,7 +782,7 @@
       return;
     }
     if (!summary.topStreets || !summary.topStreets.length) {
-      container.innerHTML = '<div class="empty">Sem rua com foco relevante no recorte público selecionado.</div>';
+      container.innerHTML = '<div class="empty">Sem rua com foco relevante no recorte p\u00fablico selecionado.</div>';
       return;
     }
     max = summary.topStreets[0].criticalScore || 1;
@@ -746,7 +791,7 @@
       return [
         '<div class="list-item">',
           '<strong>' + escapeHtml(item.logradouro) + '</strong>',
-          '<span>' + escapeHtml((item.bairro || utils.titleCase(item.area || 'Sem bairro')) + ' • ' + item.visits + ' visita(s) • ' + item.focusSignals + ' sinal(is) de foco • ' + item.depositFocus + ' depósito(s) com foco') + '</span>',
+          '<span>' + escapeHtml((item.bairro || utils.titleCase(item.area || 'Sem bairro')) + ' \u2022 ' + item.visits + ' visita(s) \u2022 ' + item.focusSignals + ' sinal(is) de foco \u2022 ' + item.depositFocus + ' dep\u00f3sito(s) com foco') + '</span>',
           '<div class="progress-row">',
             '<div class="progress-track"><div class="progress-bar" style="width:' + width + '%"></div></div>',
             '<span class="progress-value">' + escapeHtml(String(item.criticalScore)) + '</span>',
@@ -866,10 +911,10 @@
         '<br>',
         escapeHtml((item.data ? utils.formatDate(item.data) : '--') + (item.hora ? ' ' + item.hora : '')),
         '<br>',
-        escapeHtml(utils.titleCase(item.area || 'Território não informado')),
+        escapeHtml(utils.titleCase(item.area || 'Territ\u00f3rio n\u00e3o informado')),
         item.quarter ? '<br>Q ' + escapeHtml(item.quarter) : '',
         '<br>',
-        escapeHtml('Situação: ' + (item.situacao || '-'))
+        escapeHtml('Situa\u00e7\u00e3o: ' + (item.situacao || '-'))
       ].join(''));
       state.pointLayer.addLayer(marker);
       boundsPoints.push([item.lat, item.lng]);

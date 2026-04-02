@@ -239,6 +239,20 @@
   min-height:auto;
 }
 
+.public-v2 .public-report-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+}
+
+.public-v2 .public-report-card{
+  min-height:100%;
+}
+
+.public-v2 .public-report-card p{
+  margin-top:8px;
+}
+
 .public-v2 .list-item{
   border-radius:24px;
 }
@@ -288,10 +302,18 @@
   line-height:1.7;
 }
 
-.public-v2 .edu-banner .action-link{
-  background:#fff;
-  color:#214f3c;
-  border-color:transparent;
+.public-v2 .edu-note-tag{
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  padding:10px 16px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#f6f0e1,#eee4c8);
+  border:1px solid rgba(122,87,23,.16);
+  color:#7a5717;
+  font-size:.9rem;
+  font-weight:800;
+  letter-spacing:.04em;
 }
 
 .public-v2 .footer{
@@ -303,6 +325,10 @@
   .public-v2 .hero,
   .public-v2 .layout,
   .public-v2 .trust-strip{
+    grid-template-columns:1fr;
+  }
+
+  .public-v2 .public-report-grid{
     grid-template-columns:1fr;
   }
 
