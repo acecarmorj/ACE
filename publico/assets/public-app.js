@@ -220,12 +220,21 @@
     var depositFocusCount = utils.toNumber(raw.deposit_focus_count || raw.depositFocusTotal || 0);
     var gpsLat = utils.parseCoord(raw.gps_lat || (raw.gps && raw.gps.lat));
     var gpsLng = utils.parseCoord(raw.gps_lng || (raw.gps && raw.gps.lng));
+    var bairro = String(raw.bairro || '').trim();
+    var logradouro = String(raw.logradouro || '').trim();
+    var numero = String(raw.numero || '').trim();
+    var propertyUid = String(raw.property_uid || '').trim();
     return {
       uid: String(raw.uid || '').trim(),
       data: String(raw.data || '').trim(),
+      hora: String(raw.hora || '').trim().slice(0, 5),
       area: area,
       quarter: quarter,
-      bairro: String(raw.bairro || '').trim(),
+      bairro: bairro,
+      logradouro: logradouro,
+      numero: numero,
+      propertyUid: propertyUid,
+      propertyKey: propertyUid || [bairro, logradouro, numero].join('|').toLowerCase() || String(raw.uid || '').trim(),
       situacao: String(raw.situacao || 'Visitado').trim(),
       focusFound: utils.yes(raw.foco) || focusCount > 0 || depositFocusCount > 0,
       focusCount: focusCount,
@@ -336,6 +345,7 @@
     var summary = buildSummary(state.filteredVisits);
     renderHero(summary);
     renderMetrics(summary);
+    renderVisitSummary(summary);
     renderAttentionList(summary);
     renderTrend(summary);
     renderMap(summary);
@@ -347,8 +357,11 @@
     var perDay = {};
     var monitoredAreas = {};
     var heatPoints = [];
+    var latestByProperty = {};
+    var totalDeposits = 0;
 
     visits.forEach(function (visit) {
+      totalDeposits += visit.depositCount;
       if (visit.data) {
         if (!perDay[visit.data]) {
           perDay[visit.data] = { date: visit.data, visits: 0, focusSignals: 0 };
@@ -359,6 +372,12 @@
 
       if (visit.area) {
         monitoredAreas[visit.area] = true;
+      }
+
+      if (visit.propertyKey) {
+        if (!latestByProperty[visit.propertyKey] || compareVisitMoment(visit, latestByProperty[visit.propertyKey]) >= 0) {
+          latestByProperty[visit.propertyKey] = visit;
+        }
       }
 
       var areaKey = visit.area || 'SEM AREA';
@@ -434,19 +453,53 @@
     var totalDepositsFocus = quarters.reduce(function (sum, item) { return sum + item.depositFocus; }, 0);
     var totalFocusSignals = quarters.reduce(function (sum, item) { return sum + item.focusSignals; }, 0);
     var gpsVisits = visits.filter(function (visit) { return visit.gpsLat !== null && visit.gpsLng !== null; }).length;
+    var workedProperties = Object.keys(latestByProperty).length;
+    var opened = 0;
+    var closed = 0;
+    var recovered = 0;
+    var pending = 0;
+
+    Object.keys(latestByProperty).forEach(function (key) {
+      var row = latestByProperty[key];
+      var situacao = String(row.situacao || '').trim().toLowerCase();
+      if (situacao.indexOf('visit') > -1) { opened += 1; }
+      if (situacao.indexOf('fech') > -1) { closed += 1; }
+      if (situacao.indexOf('recuper') > -1) { recovered += 1; }
+      if (situacao.indexOf('fech') > -1 || situacao.indexOf('recusa') > -1) { pending += 1; }
+    });
+
+    var useGlobalMetrics = state.area === 'TODOS' && state.metrics && Object.keys(state.metrics).length;
+    var visitResume = {
+      opened: useGlobalMetrics ? utils.toNumber(state.metrics.abertos) : opened,
+      closed: useGlobalMetrics ? utils.toNumber(state.metrics.fechados) : closed,
+      totalProperties: useGlobalMetrics && utils.toNumber(state.metrics.total) ? utils.toNumber(state.metrics.total) : workedProperties,
+      recovered: useGlobalMetrics ? utils.toNumber(state.metrics.recuperados) : recovered,
+      worked: useGlobalMetrics && utils.toNumber(state.metrics.imoveis_visitados) ? utils.toNumber(state.metrics.imoveis_visitados) : workedProperties,
+      pending: useGlobalMetrics ? utils.toNumber(state.metrics.pendencias) : pending,
+      infestation: useGlobalMetrics ? utils.toNumber(state.metrics.taxa_infestacao) : (totalDeposits ? Number(((totalDepositsFocus / totalDeposits) * 100).toFixed(1)) : 0)
+    };
 
     return {
       totalVisits: totalVisits,
       monitoredAreas: Object.keys(monitoredAreas).length,
       areasWithAttention: topAreas.filter(function (item) { return item.focusSignals > 0 || item.depositFocus > 0; }).length,
       totalDepositsFocus: totalDepositsFocus,
+      totalDeposits: totalDeposits,
       totalFocusSignals: totalFocusSignals,
       gpsCoverage: totalVisits ? Math.round((gpsVisits / totalVisits) * 100) : 0,
       topAreas: topAreas,
       topQuarters: quarters,
       dailySeries: Object.keys(perDay).sort().map(function (key) { return perDay[key]; }),
-      heatPoints: heatPoints
+      heatPoints: heatPoints,
+      visitResume: visitResume
     };
+  }
+
+  function compareVisitMoment(a, b) {
+    var keyA = (a.data || '') + 'T' + (a.hora || '00:00');
+    var keyB = (b.data || '') + 'T' + (b.hora || '00:00');
+    if (keyA === keyB) { return 0; }
+    return keyA > keyB ? 1 : -1;
   }
 
   function resolvePublicPoint(area, quarter) {
@@ -499,6 +552,17 @@
     setText('metricAttentionNote', summary.areasWithAttention ? '\u00c1reas com sinais de foco ou dep\u00f3sitos com foco.' : 'Nenhuma \u00e1rea com sinal relevante no per\u00edodo.');
     setText('metricDeposits', summary.totalDepositsFocus);
     setText('metricDepositsNote', 'Dep\u00f3sitos com foco confirmados no recorte p\u00fablico.');
+  }
+
+  function renderVisitSummary(summary) {
+    var visitResume = summary.visitResume || {};
+    setText('visitOpened', visitResume.opened || 0);
+    setText('visitClosed', visitResume.closed || 0);
+    setText('visitTotalProperties', visitResume.totalProperties || 0);
+    setText('visitRecovered', visitResume.recovered || 0);
+    setText('visitWorked', visitResume.worked || 0);
+    setText('visitPending', visitResume.pending || 0);
+    setText('visitInfestation', (visitResume.infestation || 0).toFixed(1).replace('.', ',') + '%');
   }
 
   function renderAttentionList(summary) {
