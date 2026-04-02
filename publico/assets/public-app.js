@@ -67,6 +67,7 @@
     },
     normalizeArea: function (value) {
       var normalized = utils.normalizeText(value)
+        .replace(/^[A-Z0-9]{1,8}\s*-\s*/, '')
         .replace(/\./g, '')
         .replace(/CAIXA DAGUA/g, 'CAIXA DAGUA');
       return areaDictionary[normalized] || normalized;
@@ -156,7 +157,9 @@
       quarterMarkers: {},
       folderCentroids: {},
       quarterCentroids: {},
-      polygons: []
+      polygons: [],
+      bounds: null,
+      coordPool: []
     };
 
     TERRITORY.points.forEach(function (point) {
@@ -181,6 +184,7 @@
       } else if (!model.folderMarkers[folder]) {
         model.folderMarkers[folder] = [coords[0], coords[1]];
       }
+      model.coordPool.push([coords[0], coords[1]]);
     });
 
     TERRITORY.polygons.forEach(function (polygon) {
@@ -203,6 +207,11 @@
         coordinates: coords,
         centroid: centroid
       });
+      coords.forEach(function (coord) {
+        if (Array.isArray(coord) && coord.length >= 2) {
+          model.coordPool.push([coord[0], coord[1]]);
+        }
+      });
 
       if (quarter) {
         model.quarterCentroids[folder + '|' + quarter] = centroid;
@@ -218,7 +227,48 @@
       model.folderCentroids[folder] = averageCoords(model.folderCentroids[folder]);
     });
 
+    model.bounds = getBounds(model.coordPool);
+    delete model.coordPool;
+
     return model;
+  }
+
+  function getBounds(coords) {
+    if (!Array.isArray(coords) || !coords.length) {
+      return null;
+    }
+    var bounds = {
+      minLat: Infinity,
+      maxLat: -Infinity,
+      minLng: Infinity,
+      maxLng: -Infinity
+    };
+    coords.forEach(function (coord) {
+      if (!Array.isArray(coord) || coord.length < 2) { return; }
+      var lat = Number(coord[0]);
+      var lng = Number(coord[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) { return; }
+      bounds.minLat = Math.min(bounds.minLat, lat);
+      bounds.maxLat = Math.max(bounds.maxLat, lat);
+      bounds.minLng = Math.min(bounds.minLng, lng);
+      bounds.maxLng = Math.max(bounds.maxLng, lng);
+    });
+    if (!Number.isFinite(bounds.minLat) || !Number.isFinite(bounds.minLng)) {
+      return null;
+    }
+    return bounds;
+  }
+
+  function isInsidePublicBounds(lat, lng) {
+    var bounds = territoryModel.bounds;
+    var margin = 0.02;
+    if (!bounds || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return false;
+    }
+    return lat >= (bounds.minLat - margin) &&
+      lat <= (bounds.maxLat + margin) &&
+      lng >= (bounds.minLng - margin) &&
+      lng <= (bounds.maxLng + margin);
   }
 
   function getPolygonCentroid(coords) {
@@ -441,13 +491,14 @@
       var bucket = perAreaQuarter[quarterKey];
       var areaBucket = perArea[areaKey];
       var focusSignal = visit.focusCount + visit.depositFocusCount;
+      var visitPoint = resolveVisitPoint(visit);
 
       bucket.visits += 1;
       bucket.focusSignals += focusSignal;
       bucket.focusVisits += visit.focusFound ? 1 : 0;
       bucket.depositFocus += visit.depositFocusCount;
       bucket.deposits += visit.depositCount;
-      bucket.gps += visit.gpsLat !== null && visit.gpsLng !== null ? 1 : 0;
+      bucket.gps += visitPoint ? 1 : 0;
       if (/fechado|recusa/i.test(visit.situacao)) { bucket.closed += 1; }
       if (/visitado/i.test(visit.situacao)) { bucket.opened += 1; }
 
@@ -457,17 +508,18 @@
       areaBucket.depositFocus += visit.depositFocusCount;
       areaBucket.deposits += visit.depositCount;
 
-      if (visit.gpsLat !== null && visit.gpsLng !== null) {
-        heatPoints.push([visit.gpsLat, visit.gpsLng, utils.clamp((focusSignal > 0 ? focusSignal : 1), 0.2, 8)]);
+      if (visitPoint) {
+        heatPoints.push([visitPoint.lat, visitPoint.lng, utils.clamp((focusSignal > 0 ? focusSignal : 1), 0.2, 8)]);
         visitPoints.push({
-          lat: visit.gpsLat,
-          lng: visit.gpsLng,
+          lat: visitPoint.lat,
+          lng: visitPoint.lng,
           area: visit.area,
           quarter: visit.quarter,
           data: visit.data,
           hora: visit.hora,
           situacao: visit.situacao,
-          focusSignals: focusSignal
+          focusSignals: focusSignal,
+          source: visitPoint.source
         });
       }
     });
@@ -558,6 +610,20 @@
     }
     if (area && territoryModel.folderCentroids[area]) {
       return territoryModel.folderCentroids[area];
+    }
+    return null;
+  }
+
+  function resolveVisitPoint(visit) {
+    if (visit.gpsLat !== null && visit.gpsLng !== null && isInsidePublicBounds(visit.gpsLat, visit.gpsLng)) {
+      return { lat: visit.gpsLat, lng: visit.gpsLng, source: 'gps' };
+    }
+    var fallback = resolvePublicPoint(visit.area, visit.quarter);
+    if (fallback) {
+      return { lat: fallback[0], lng: fallback[1], source: 'territory' };
+    }
+    if (visit.gpsLat !== null && visit.gpsLng !== null) {
+      return { lat: visit.gpsLat, lng: visit.gpsLng, source: 'gps' };
     }
     return null;
   }
@@ -680,6 +746,7 @@
       quarterScores[item.area + '|' + item.quarter] = item.focusSignals + item.depositFocus + item.visits * 0.1;
     });
 
+    var boundsPoints = [];
     state.polygonLayer = L.layerGroup();
     territoryModel.polygons.forEach(function (polygon) {
       if (state.area !== 'TODOS' && polygon.folder !== state.area) {
@@ -704,6 +771,9 @@
       }
       layer.bindPopup(popupLines.join('<br>'));
       state.polygonLayer.addLayer(layer);
+      if (polygon.centroid && polygon.centroid.length === 2) {
+        boundsPoints.push([polygon.centroid[0], polygon.centroid[1]]);
+      }
     });
     state.polygonLayer.addTo(state.map);
 
@@ -727,11 +797,12 @@
     summary.visitPoints.forEach(function (item) {
       var score = item.focusSignals || 0;
       var marker = L.circleMarker([item.lat, item.lng], {
-        radius: score > 0 ? 6.5 : 5,
-        color: '#ffffff',
-        weight: 1.5,
+        pane: 'publicVisitPane',
+        radius: score > 0 ? 7.5 : 6,
+        color: '#163728',
+        weight: 2,
         fillColor: score > 0 ? '#c84b4b' : '#2f7a52',
-        fillOpacity: 0.72
+        fillOpacity: 0.95
       });
       marker.bindPopup([
         '<strong>Visita pública georreferenciada</strong>',
@@ -744,8 +815,18 @@
         escapeHtml('Situação: ' + (item.situacao || '-'))
       ].join(''));
       state.pointLayer.addLayer(marker);
+      boundsPoints.push([item.lat, item.lng]);
     });
     state.pointLayer.addTo(state.map);
+    if (state.pointLayer.bringToFront) {
+      state.pointLayer.bringToFront();
+    }
+
+    if (boundsPoints.length) {
+      state.map.fitBounds(boundsPoints, { padding: [24, 24], maxZoom: 14 });
+    } else {
+      state.map.setView([-21.935778, -42.607911], 13);
+    }
 
     var note = summary.topAreas[0]
       ? 'Maior aten\u00e7\u00e3o atual: ' + utils.titleCase(summary.topAreas[0].area) + '. O mapa exibe calor territorial e pontos públicos georreferenciados sem nome de morador.'
@@ -758,6 +839,9 @@
       zoomControl: true,
       scrollWheelZoom: true
     }).setView([-21.935778, -42.607911], 13);
+
+    state.map.createPane('publicVisitPane');
+    state.map.getPane('publicVisitPane').style.zIndex = 650;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
