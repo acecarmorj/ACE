@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acs-campo-v9';
+const CACHE_NAME = 'acs-campo-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -7,13 +7,13 @@ const ASSETS = [
   './painel_alternativo.html',
   './cartao.html',
   './cartao_alternativo.html',
-  './assets/ace-theme.css?v=20260403g',
-  './assets/ace-theme-alt.css?v=20260403g',
-  './assets/runtime-config.js?v=20260403g',
-  './assets/carmo-territorios-data.js?v=20260403g',
-  './assets/index-core.js?v=20260403g',
-  './assets/index-render.js?v=20260403g',
-  './assets/index-actions.js?v=20260403g',
+  './assets/ace-theme.css?v=20260403e',
+  './assets/ace-theme-alt.css?v=20260403e',
+  './assets/runtime-config.js?v=20260403e',
+  './assets/carmo-territorios-data.js?v=20260403e',
+  './assets/index-core.js?v=20260403e',
+  './assets/index-render.js?v=20260403e',
+  './assets/index-actions.js?v=20260403e',
   './assets/painel-app.js?v=20260403e',
   './assets/cartao-app.js?v=20260402b'
 ];
