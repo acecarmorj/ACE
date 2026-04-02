@@ -1855,7 +1855,7 @@
 
   app.registerServiceWorker = function () {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./assets/sw-acs.js?v=20260403k').catch(function () { return null; });
+      navigator.serviceWorker.register('./assets/sw-acs.js?v=20260403l').catch(function () { return null; });
     }
   };
 

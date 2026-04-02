@@ -3,6 +3,16 @@
 
   var app = window.ACSField;
 
+  function getHeatVisual(weight) {
+    if (weight >= 6) {
+      return { stroke: '#9f1f27', fill: '#d93c47', opacity: Math.min(0.62, 0.26 + (weight * 0.045)) };
+    }
+    if (weight >= 3) {
+      return { stroke: '#c85c2c', fill: '#e37c3d', opacity: Math.min(0.48, 0.18 + (weight * 0.04)) };
+    }
+    return { stroke: '#c78615', fill: '#d7a642', opacity: Math.min(0.34, 0.14 + (weight * 0.035)) };
+  }
+
   app.showMessage = function (text, kind) {
     var node = document.getElementById('syncStatus');
     node.textContent = text;
@@ -910,12 +920,13 @@
 
     Object.keys(heat).forEach(function (key) {
       var item = heat[key];
+      var heatVisual = getHeatVisual(item.weight);
       var circle = L.circle([item.lat, item.lng], {
         radius: 80 + (item.weight * 18),
-        color: '#355f9f',
+        color: heatVisual.stroke,
         weight: 1,
-        fillColor: '#355f9f',
-        fillOpacity: Math.min(0.45, 0.12 + (item.weight * 0.04))
+        fillColor: heatVisual.fill,
+        fillOpacity: heatVisual.opacity
       }).addTo(app.state.map);
       circle.bindPopup('Mapa de calor: ' + item.weight + ' ocorrência(s) ponderadas.');
       app.state.mapLayers.push(circle);

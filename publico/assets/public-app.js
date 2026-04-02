@@ -709,15 +709,16 @@
 
     if (summary.heatPoints.length && window.L && typeof L.heatLayer === 'function') {
       state.heatLayer = L.heatLayer(summary.heatPoints, {
-        radius: 32,
-        blur: 24,
+        radius: 34,
+        blur: 28,
         maxZoom: 16,
-        minOpacity: 0.35,
+        minOpacity: 0.42,
         gradient: {
-          0.2: '#4c9d75',
-          0.45: '#d79a28',
-          0.75: '#d96f36',
-          1: '#c84b4b'
+          0.15: '#f2c55a',
+          0.4: '#e88b3a',
+          0.65: '#dc5648',
+          0.85: '#c73238',
+          1: '#8e1424'
         }
       }).addTo(state.map);
     }
