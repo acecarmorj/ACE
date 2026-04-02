@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#21563c">
   <title>ACE Campo | Carmo/RJ</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="./assets/ace-theme.css?v=20260403f">
+  <link rel="stylesheet" href="./assets/ace-theme.css?v=20260403g">
 </head>
 <body class="field-page">
   <div id="loginScreen" class="login-shell">
@@ -139,25 +139,10 @@
             </div>
           </div>
 
-          <div class="grid two" style="margin-top:16px">
-            <div class="field">
-              <label>Microárea</label>
-              <div class="stepper">
-                <button type="button" data-step-target="visitMicroarea" data-step="-1">−</button>
-                <input id="visitMicroarea" type="text" list="visitMicroareaOptions" placeholder="Ex.: M01 ou M03 - Botafogo">
-                <div class="field-help">Use o código ou nome operacional da microárea.</div>
-                <button type="button" data-step-target="visitMicroarea" data-step="1">+</button>
-              </div>
-            </div>
-            <div class="field">
-              <label>Quarteirão</label>
-              <div class="stepper">
-                <button type="button" data-step-target="visitQuarteirao" data-step="-1">−</button>
-                <input id="visitQuarteirao" type="text" list="visitQuarteiraoOptions" placeholder="Ex.: 12, 13/1, 6/01">
-                <div class="field-help">Aceita códigos compostos como 9/01, 13/1 e similares.</div>
-                <button type="button" data-step-target="visitQuarteirao" data-step="1">+</button>
-              </div>
-            </div>
+          <div class="field inherited-field" style="margin-top:16px">
+            <label>Dados herdados do imóvel</label>
+            <div id="visitInheritedInfo" class="inherited-visit-box"></div>
+            <div class="field-help">Ao selecionar um imóvel, morador, endereço, bairro, microárea e quarteirão vêm automaticamente do cadastro. Nesta tela você preenche só os dados da visita.</div>
           </div>
 
           <div class="grid two" style="margin-top:16px">
@@ -526,10 +511,10 @@
   <div id="syncStatus" class="sync-banner">Pronto</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="./assets/runtime-config.js?v=20260403f"></script>
-  <script src="./assets/carmo-territorios-data.js?v=20260403f"></script>
-  <script src="./assets/index-core.js?v=20260403f"></script>
-  <script src="./assets/index-render.js?v=20260403f"></script>
-  <script src="./assets/index-actions.js?v=20260403f"></script>
+  <script src="./assets/runtime-config.js?v=20260403g"></script>
+  <script src="./assets/carmo-territorios-data.js?v=20260403g"></script>
+  <script src="./assets/index-core.js?v=20260403g"></script>
+  <script src="./assets/index-render.js?v=20260403g"></script>
+  <script src="./assets/index-actions.js?v=20260403g"></script>
 </body>
 </html>

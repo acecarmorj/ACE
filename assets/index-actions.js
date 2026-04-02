@@ -129,6 +129,39 @@
       }
     }
 
+    if (!document.getElementById('visitInheritedInfo')) {
+      var visitTime = document.getElementById('visitTime');
+      var dateGrid = visitTime ? visitTime.closest('.grid') : null;
+      if (dateGrid && dateGrid.parentNode) {
+        var inheritedField = document.createElement('div');
+        inheritedField.className = 'field inherited-field';
+        inheritedField.style.marginTop = '16px';
+        inheritedField.innerHTML = '' +
+          '<label>Dados herdados do imóvel</label>' +
+          '<div id="visitInheritedInfo" class="inherited-visit-box"></div>' +
+          '<div class="field-help">Ao selecionar um imóvel, morador, endereço, bairro, microárea e quarteirão vêm automaticamente do cadastro. Nesta tela você preenche só os dados da visita.</div>';
+        dateGrid.parentNode.insertBefore(inheritedField, dateGrid.nextSibling);
+      }
+    }
+
+    var legacyVisitMicroarea = document.getElementById('visitMicroarea');
+    var legacyVisitQuarteirao = document.getElementById('visitQuarteirao');
+    if (legacyVisitMicroarea && legacyVisitQuarteirao) {
+      var legacyGrid = legacyVisitMicroarea.closest('.grid.two');
+      var legacyMicroField = legacyVisitMicroarea.closest('.field');
+      var legacyQuarterField = legacyVisitQuarteirao.closest('.field');
+      if (legacyGrid && legacyGrid.contains(legacyVisitQuarteirao) && legacyGrid.parentNode) {
+        legacyGrid.parentNode.removeChild(legacyGrid);
+      } else {
+        if (legacyMicroField) {
+          legacyMicroField.remove();
+        }
+        if (legacyQuarterField) {
+          legacyQuarterField.remove();
+        }
+      }
+    }
+
     if (!document.getElementById('visitOutputActions')) {
       var photoPreview = document.getElementById('photoPreview');
       if (photoPreview && photoPreview.parentNode) {
@@ -139,33 +172,6 @@
           '</div>');
       }
     }
-
-    function rebuildAreaField(fieldId, label, help, emptyLabel) {
-      var input = document.getElementById(fieldId);
-      var field = input ? input.closest('.field') : null;
-      if (!field) {
-        return;
-      }
-      field.innerHTML = '' +
-        '<label for="' + fieldId + '">' + label + '</label>' +
-        '<select id="' + fieldId + '">' +
-          '<option value="">' + emptyLabel + '</option>' +
-        '</select>' +
-        '<div class="field-help">' + help + '</div>';
-    }
-
-    rebuildAreaField(
-      'visitMicroarea',
-      'Microárea',
-      'Escolha a microárea para liberar apenas os quarteirões correspondentes.',
-      'Selecione a microárea'
-    );
-    rebuildAreaField(
-      'visitQuarteirao',
-      'Quarteirão',
-      'Depois da microárea, o sistema mostra só os quarteirões daquele setor.',
-      'Selecione primeiro a microárea'
-    );
 
     if (!document.getElementById('propMicroarea')) {
       var complementoField = document.getElementById('propComplemento');
@@ -520,6 +526,23 @@
     window.open(current, '_blank');
   };
 
+  app.applySelectedPropertyToVisitContext = function () {
+    var property = app.getSelectedProperty();
+    if (!property) {
+      return false;
+    }
+    app.state.visit.microarea = app.normalizeAreaCode(property.microarea || '');
+    app.state.visit.quarteirao = app.normalizeAreaCode(property.quarteirao || '');
+    app.state.visit.routeUrl = app.buildRouteUrl(property);
+    if (!app.state.visit.gpsTerritory && property.gpsTerritory) {
+      app.state.visit.gpsTerritory = property.gpsTerritory;
+    }
+    if (!app.state.visit.gpsQuarteirao && property.gpsQuarteirao) {
+      app.state.visit.gpsQuarteirao = property.gpsQuarteirao;
+    }
+    return true;
+  };
+
   app.signatureHasInk = function () {
     var canvas = document.getElementById('signatureCanvas');
     if (!canvas) {
@@ -674,8 +697,12 @@
   app.syncVisitWithInputs = function () {
     app.state.visit.data = document.getElementById('visitDate').value || app.todayISO();
     app.state.visit.hora = app.sanitizeHour(document.getElementById('visitTime').value || app.nowHHMM());
-    app.state.visit.microarea = app.normalizeAreaCode(document.getElementById('visitMicroarea').value || '');
-    app.state.visit.quarteirao = app.normalizeAreaCode(document.getElementById('visitQuarteirao').value || '');
+    if (!app.applySelectedPropertyToVisitContext()) {
+      var legacyVisitMicroarea = document.getElementById('visitMicroarea');
+      var legacyVisitQuarteirao = document.getElementById('visitQuarteirao');
+      app.state.visit.microarea = app.normalizeAreaCode(legacyVisitMicroarea ? legacyVisitMicroarea.value || '' : app.state.visit.microarea || '');
+      app.state.visit.quarteirao = app.normalizeAreaCode(legacyVisitQuarteirao ? legacyVisitQuarteirao.value || '' : app.state.visit.quarteirao || '');
+    }
     app.state.visit.focusQty = Math.max(0, Number(document.getElementById('visitFocusQty').value || 0));
     app.state.visit.tubitosQty = Math.max(0, Number(document.getElementById('visitTubitosQty').value || 0));
     app.state.visit.larvicida = document.getElementById('visitLarvicida').value || 'Nenhum';
@@ -1163,13 +1190,7 @@
     app.state.selectedPropertyId = propertyId;
     var property = app.getSelectedProperty();
     if (property) {
-      if (property.microarea) {
-        app.state.visit.microarea = property.microarea;
-      }
-      if (property.quarteirao) {
-        app.state.visit.quarteirao = property.quarteirao;
-      }
-      app.state.visit.routeUrl = app.buildRouteUrl(property);
+      app.applySelectedPropertyToVisitContext();
       if (document.getElementById('visitBairroSelect')) {
         document.getElementById('visitBairroSelect').value = property.bairro || '';
       }
@@ -1245,7 +1266,7 @@
       return;
     }
     if (!app.state.visit.microarea || !app.state.visit.quarteirao) {
-      app.showMessage('Preencha microárea e quarteirão antes de salvar a visita.', 'danger');
+      app.showMessage('O imóvel selecionado está sem microárea e/ou quarteirão no cadastro. Atualize o imóvel antes de salvar a visita.', 'danger');
       return;
     }
     if ((app.state.visit.situacao === 'Visitado' || app.state.visit.situacao === 'Recuperado') && !app.state.visit.signatureDataUrl) {
@@ -1788,7 +1809,7 @@
 
   app.registerServiceWorker = function () {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./assets/sw-acs.js?v=20260403f').catch(function () { return null; });
+      navigator.serviceWorker.register('./assets/sw-acs.js?v=20260403g').catch(function () { return null; });
     }
   };
 

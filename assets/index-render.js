@@ -301,6 +301,50 @@
     }).join('');
   };
 
+  app.renderVisitInheritedInfo = function () {
+    var node = document.getElementById('visitInheritedInfo');
+    if (!node) {
+      return;
+    }
+
+    var property = app.getSelectedProperty();
+    if (!property) {
+      node.innerHTML = '' +
+        '<div class="inherited-visit-empty">' +
+          '<strong>Selecione um imóvel para iniciar a visita</strong>' +
+          '<span>Morador, endereço, bairro, microárea, quarteirão, tipo e complemento virão automaticamente do cadastro.</span>' +
+        '</div>';
+      return;
+    }
+
+    var items = [
+      { label: 'Morador', value: property.morador || 'Não informado' },
+      { label: 'Contato', value: property.telefone || 'Não informado' },
+      { label: 'Endereço', value: [property.logradouro, property.numero].filter(Boolean).join(', ') || 'Não informado' },
+      { label: 'Bairro', value: property.bairro || 'Não informado' },
+      { label: 'Microárea', value: property.microarea || 'Não definida' },
+      { label: 'Quarteirão', value: property.quarteirao || 'Não definido' },
+      { label: 'Tipo', value: property.tipo || 'Não informado' },
+      { label: 'Complemento', value: property.complemento || 'Normal' },
+      { label: 'Referência', value: app.getPropertyReferenceText(property) || 'Sem referência complementar' }
+    ];
+
+    node.innerHTML = '' +
+      '<div class="inherited-visit-head">' +
+        '<strong>Cadastro vinculado à visita</strong>' +
+        '<span>Esses dados vêm do imóvel selecionado e não precisam ser preenchidos novamente.</span>' +
+      '</div>' +
+      '<div class="inherited-visit-grid">' +
+        items.map(function (item) {
+          return '' +
+            '<div class="inherited-visit-item">' +
+              '<small>' + app.escapeHtml(item.label) + '</small>' +
+              '<strong>' + app.escapeHtml(item.value) + '</strong>' +
+            '</div>';
+        }).join('') +
+      '</div>';
+  };
+
   app.fillAgentSelect = function () {
     var select = document.getElementById('loginAgent');
     var agents = app.readAgents().sort(function (a, b) {
@@ -345,8 +389,8 @@
     var visitAdulticida = document.getElementById('visitAdulticida');
     var currentPropertyBairro = propBairro.value;
     var currentVisitBairro = visitBairroSelect ? visitBairroSelect.value : '';
-    var currentVisitMicroarea = visitMicroarea ? app.normalizeAreaCode(visitMicroarea.value) : '';
-    var currentVisitQuarteirao = visitQuarteirao ? app.normalizeAreaCode(visitQuarteirao.value) : '';
+    var currentVisitMicroarea = app.state.visit ? app.normalizeAreaCode(app.state.visit.microarea) : '';
+    var currentVisitQuarteirao = app.state.visit ? app.normalizeAreaCode(app.state.visit.quarteirao) : '';
     var currentPropertyMicroarea = propMicroarea ? app.normalizeAreaCode(propMicroarea.value) : '';
     var currentPropertyQuarteirao = propQuarteirao ? app.normalizeAreaCode(propQuarteirao.value) : '';
     var currentPropertyType = propTipo ? propTipo.value : '';
@@ -444,8 +488,8 @@
       ? document.getElementById('propertySort').selectedOptions[0].textContent
       : 'Ordenação atual';
     var selectedBairro = document.getElementById('visitBairroSelect') ? document.getElementById('visitBairroSelect').value : '';
-    var selectedMicroarea = app.normalizeAreaCode(document.getElementById('visitMicroarea') ? document.getElementById('visitMicroarea').value : '');
-    var selectedQuarteirao = app.normalizeAreaCode(document.getElementById('visitQuarteirao') ? document.getElementById('visitQuarteirao').value : '');
+    var selectedMicroarea = app.normalizeAreaCode(app.state.visit && app.state.visit.microarea ? app.state.visit.microarea : '');
+    var selectedQuarteirao = app.normalizeAreaCode(app.state.visit && app.state.visit.quarteirao ? app.state.visit.quarteirao : '');
     var currentAgent = app.state.currentAgent || {};
     var rows = app.readProperties().slice().map(function (property) {
       var history = app.getVisitsForProperty(property);
@@ -894,9 +938,8 @@
     document.getElementById('visitDate').value = visit.data;
     document.getElementById('visitTime').value = visit.hora;
     app.fillPropertyFormOptions();
-    document.getElementById('visitMicroarea').value = visit.microarea;
-    if (document.getElementById('visitQuarteirao') && typeof app.syncAreaSelects === 'function') {
-      app.syncAreaSelects(document.getElementById('visitMicroarea'), document.getElementById('visitQuarteirao'), visit.quarteirao);
+    if (typeof app.applySelectedPropertyToVisitContext === 'function') {
+      app.applySelectedPropertyToVisitContext();
     }
     document.getElementById('visitFocusQty').value = visit.focusQty;
     document.getElementById('visitTubitosQty').value = visit.tubitosQty;
@@ -928,6 +971,7 @@
     app.renderGpsStatus();
     app.renderPhotoPreview();
     app.renderSignatureStatus();
+    app.renderVisitInheritedInfo();
     app.renderSelectedPropertyCard();
     app.renderSelectedHistory();
     app.createVisitSummary();
