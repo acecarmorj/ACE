@@ -539,7 +539,7 @@
 
   function renderMetrics(summary) {
     setText('metricVisits', summary.totalVisits);
-    setText('metricVisitsNote', summary.totalVisits ? 'A\u00e7\u00f5es registradas no per\u00edodo selecionado.' : 'Sem visitas sincronizadas neste recorte.');
+    setText('metricVisitsNote', summary.totalVisits ? 'Lançamentos registrados no período selecionado.' : 'Sem visitas sincronizadas neste recorte.');
     setText('metricAreas', summary.monitoredAreas);
     setText('metricAreasNote', summary.monitoredAreas ? 'Territ\u00f3rios com algum registro p\u00fablico no recorte.' : 'Aguardando registros p\u00fablicos de territ\u00f3rio.');
     setText('metricAttention', summary.areasWithAttention);

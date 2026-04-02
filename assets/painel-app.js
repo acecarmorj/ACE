@@ -1005,7 +1005,7 @@
     var focusByDeposit = aggregateFocusByDeposit(visits);
 
     document.getElementById('heroTotalVisits').textContent = metrics.totalVisits;
-    document.getElementById('heroVisitsSub').textContent = metrics.visitedProperties + ' imovel(is) trabalhado(s) no recorte.';
+    document.getElementById('heroVisitsSub').textContent = metrics.visitedProperties + ' trabalhados (abertos + recuperados) no recorte.';
     document.getElementById('heroInfestation').textContent = metrics.infestationRate + '%';
     document.getElementById('heroInfestationSub').textContent = metrics.depositsWithFocus + ' deposito(s) com foco de ' + metrics.deposits + ' encontrados.';
     document.getElementById('heroDepositsFocus').textContent = metrics.depositsWithFocus;
