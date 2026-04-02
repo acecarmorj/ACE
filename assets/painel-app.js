@@ -197,7 +197,14 @@
 
   function isUsefulTerritoryPolygon(feature) {
     var bounds = getCoordinatesBounds(feature.coordinates);
-    if (!bounds || feature.coordinates.length <= 2 || feature.territoryKey === 'carmo') {
+    var path = Array.isArray(feature.path) ? feature.path : [];
+    var folderKey = normalizeLabel(feature.folder);
+    var nameKey = normalizeLabel(feature.name);
+    var isMacroCarmo = feature.territoryKey === 'carmo' ||
+      folderKey === 'carmo' ||
+      nameKey === 'carmo' ||
+      (path.length <= 1 && (folderKey === 'carmo' || nameKey === 'carmo'));
+    if (!bounds || feature.coordinates.length <= 2 || isMacroCarmo) {
       return false;
     }
     return bounds.latSpan <= 0.08 && bounds.lngSpan <= 0.08;

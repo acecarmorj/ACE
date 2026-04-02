@@ -167,9 +167,26 @@
       coordPool: []
     };
 
+    function shouldIgnoreFeature(folder, name, path, coords) {
+      var folderKey = utils.normalizeArea(folder || '');
+      var nameKey = utils.normalizeArea(name || '');
+      var pathList = Array.isArray(path) ? path : [];
+      var bounds = getBounds(coords || []);
+      var isMacroCarmo = folderKey === 'CARMO' ||
+        nameKey === 'CARMO' ||
+        (pathList.length <= 1 && (folderKey === 'CARMO' || nameKey === 'CARMO'));
+      if (!folderKey || IGNORED_FOLDERS[folderKey] || isMacroCarmo) {
+        return true;
+      }
+      if (bounds && isMacroCarmo && ((bounds.maxLat - bounds.minLat) > 0.08 || (bounds.maxLng - bounds.minLng) > 0.08)) {
+        return true;
+      }
+      return false;
+    }
+
     TERRITORY.points.forEach(function (point) {
       var folder = utils.normalizeArea(point.folder || '');
-      if (!folder || IGNORED_FOLDERS[folder]) {
+      if (shouldIgnoreFeature(point.folder, point.name, point.path, point.coordinates || [])) {
         return;
       }
 
@@ -194,7 +211,7 @@
 
     TERRITORY.polygons.forEach(function (polygon) {
       var folder = utils.normalizeArea(polygon.folder || '');
-      if (!folder || IGNORED_FOLDERS[folder]) {
+      if (shouldIgnoreFeature(polygon.folder, polygon.name, polygon.path, polygon.coordinates || [])) {
         return;
       }
       var coords = Array.isArray(polygon.coordinates) ? polygon.coordinates : [];
