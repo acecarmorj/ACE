@@ -105,8 +105,38 @@
     return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
   }
 
-  function normalizeAreaCode(value) {
+  function repairTextEncoding(value) {
     return String(value || '')
+      .replace(/ÃƒÂ/g, 'Ã')
+      .replace(/Â/g, '')
+      .replace(/Ã/g, 'Á')
+      .replace(/Ã/g, 'À')
+      .replace(/Ã/g, 'Â')
+      .replace(/Ã/g, 'Ã')
+      .replace(/Ã/g, 'É')
+      .replace(/Ã/g, 'Ê')
+      .replace(/Ã/g, 'Í')
+      .replace(/Ã/g, 'Ó')
+      .replace(/Ã/g, 'Ô')
+      .replace(/Ã/g, 'Õ')
+      .replace(/Ã/g, 'Ú')
+      .replace(/Ã/g, 'Ç')
+      .replace(/Ã¡/g, 'á')
+      .replace(/Ã /g, 'à')
+      .replace(/Ã¢/g, 'â')
+      .replace(/Ã£/g, 'ã')
+      .replace(/Ã©/g, 'é')
+      .replace(/Ãª/g, 'ê')
+      .replace(/Ã­/g, 'í')
+      .replace(/Ã³/g, 'ó')
+      .replace(/Ã´/g, 'ô')
+      .replace(/Ãµ/g, 'õ')
+      .replace(/Ãº/g, 'ú')
+      .replace(/Ã§/g, 'ç');
+  }
+
+  function normalizeAreaCode(value) {
+    return repairTextEncoding(value)
       .trim()
       .replace(/\s+/g, ' ')
       .replace(/\s*\/\s*/g, '/');
@@ -139,7 +169,7 @@
   }
 
   function normalizeLabel(value) {
-    var label = String(value || '')
+    var label = repairTextEncoding(value)
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
@@ -151,7 +181,7 @@
   }
 
   function normalizeQuarteirao(value) {
-    var raw = String(value || '').trim();
+    var raw = repairTextEncoding(value).trim();
     var dateValue = normalizeQuarterDateValue(raw);
     if (dateValue) {
       raw = dateValue;
@@ -160,14 +190,14 @@
   }
 
   function normalizeTerritoryCandidate(value) {
-    return normalizeLabel(String(value || '').replace(/^[A-Z0-9]{1,8}\s*-\s*/i, ''));
+    return normalizeLabel(repairTextEncoding(value).replace(/^[A-Z0-9]{1,8}\s*-\s*/i, ''));
   }
 
   function getFeatureTerritoryName(feature) {
     if (!feature) {
       return '';
     }
-    return String(feature.folder || feature.name || '').trim();
+    return repairTextEncoding(feature.folder || feature.name || '').trim();
   }
 
   function getCoordinatesBounds(coords) {
@@ -1754,7 +1784,7 @@
 
   function resolvePolygonForVisit(visit) {
     var visitQuarteirao = normalizeQuarteirao(visit.gpsQuarteirao || visit.quarteirao);
-    var visitTerritory = normalizeTerritoryCandidate(visit.gpsTerritory || visit.bairro);
+    var visitTerritory = normalizeTerritoryCandidate(visit.gpsTerritory || visit.bairro || visit.microarea);
     var directMatch;
 
     if (visitQuarteirao) {
@@ -1784,7 +1814,7 @@
 
   function resolveTerritoryPointForVisit(visit) {
     var visitQuarteirao = normalizeQuarteirao(visit.gpsQuarteirao || visit.quarteirao);
-    var visitTerritory = normalizeTerritoryCandidate(visit.gpsTerritory || visit.bairro);
+    var visitTerritory = normalizeTerritoryCandidate(visit.gpsTerritory || visit.bairro || visit.microarea);
     var directMatch;
 
     if (visitQuarteirao) {

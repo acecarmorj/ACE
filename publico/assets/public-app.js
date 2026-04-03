@@ -58,6 +58,35 @@
   };
 
   var utils = {
+    repairTextEncoding: function (value) {
+      return String(value || '')
+        .replace(/ÃƒÂ/g, 'Ã')
+        .replace(/Â/g, '')
+        .replace(/Ã/g, 'Á')
+        .replace(/Ã/g, 'À')
+        .replace(/Ã/g, 'Â')
+        .replace(/Ã/g, 'Ã')
+        .replace(/Ã/g, 'É')
+        .replace(/Ã/g, 'Ê')
+        .replace(/Ã/g, 'Í')
+        .replace(/Ã/g, 'Ó')
+        .replace(/Ã/g, 'Ô')
+        .replace(/Ã/g, 'Õ')
+        .replace(/Ã/g, 'Ú')
+        .replace(/Ã/g, 'Ç')
+        .replace(/Ã¡/g, 'á')
+        .replace(/Ã /g, 'à')
+        .replace(/Ã¢/g, 'â')
+        .replace(/Ã£/g, 'ã')
+        .replace(/Ã©/g, 'é')
+        .replace(/Ãª/g, 'ê')
+        .replace(/Ã­/g, 'í')
+        .replace(/Ã³/g, 'ó')
+        .replace(/Ã´/g, 'ô')
+        .replace(/Ãµ/g, 'õ')
+        .replace(/Ãº/g, 'ú')
+        .replace(/Ã§/g, 'ç');
+    },
     localIsoDate: function (date) {
       if (Object.prototype.toString.call(date) !== '[object Date]' || isNaN(date.getTime())) {
         return '';
@@ -68,7 +97,7 @@
       return year + '-' + month + '-' + day;
     },
     normalizeText: function (value) {
-      return String(value || '')
+      return utils.repairTextEncoding(value)
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, ' ')
@@ -83,7 +112,7 @@
       return areaDictionary[normalized] || normalized;
     },
     normalizeQuarter: function (value) {
-      var raw = String(value || '').trim();
+      var raw = utils.repairTextEncoding(value).trim();
       var isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
       if (isoMatch) {
         raw = String(Number(isoMatch[3])) + '/' + String(Number(isoMatch[2]));
@@ -162,6 +191,14 @@
     buildApiEnd: function (value) {
       return value ? value + 'T23:59:59.999Z' : '';
     }
+  };
+
+  utils.titleCase = function (value) {
+    return utils.repairTextEncoding(value)
+      .toLowerCase()
+      .replace(/(^|\s|\/|-)([a-zà-ú])/g, function (_, start, letter) {
+        return start + letter.toUpperCase();
+      });
   };
 
   var territoryModel = buildTerritoryModel();
@@ -330,7 +367,7 @@
   }
 
   function shapeVisit(raw) {
-    var area = utils.normalizeArea(raw.gps_territory || raw.bairro || '');
+    var area = utils.normalizeArea(raw.gps_territory || raw.bairro || raw.microarea || '');
     var quarter = utils.normalizeQuarter(raw.gps_quarteirao || raw.quarteirao || '');
     var focusCount = utils.toNumber(raw.focus_count || raw.focusQty || 0);
     var depositCount = utils.toNumber(raw.deposit_count || raw.depositTotal || 0);
