@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#21563c">
   <title>ACE Campo | Carmo/RJ</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -78,20 +78,7 @@
 
         <div class="card">
           <h2 class="section-title">Imóvel selecionado</h2>
-          <p class="card-note">Use o cadastro para localizar, editar e abrir a visita do imóvel mais próximo.</p>
-          <div class="field" style="margin-bottom:16px">
-            <label for="visitBairroSelect">Bairro da visita</label>
-            <select id="visitBairroSelect">
-              <option value="">Todos os bairros</option>
-            </select>
-          </div>
-          <div class="field" style="margin-bottom:16px">
-            <label for="propertyQuickSelect">Endereço da visita</label>
-            <select id="propertyQuickSelect">
-              <option value="">Selecione um imóvel cadastrado</option>
-            </select>
-            <div class="field-help">A lista prioriza microárea, quarteirão, bairro e proximidade do agente.</div>
-          </div>
+          <p class="card-note">Escolha o imóvel na aba <strong>Imóveis</strong>. Quando ele for aberto para visita, os dados cadastrais aparecem completos aqui e você preenche só a ação de campo.</p>
           <div id="selectedPropertyCard" class="selected-card">
             <h3>Nenhum imóvel selecionado</h3>
             <p>Abra a aba de imóveis, pesquise o endereço e toque em <strong>Visitar</strong>.</p>

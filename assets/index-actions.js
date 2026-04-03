@@ -102,30 +102,23 @@
       }
     }
 
-    if (!document.getElementById('visitBairroSelect')) {
-      var visitSelectedCard = document.getElementById('selectedPropertyCard');
-      if (visitSelectedCard && visitSelectedCard.parentNode) {
-        var bairroSelect = document.createElement('div');
-        bairroSelect.className = 'field';
-        bairroSelect.style.marginBottom = '16px';
-        bairroSelect.innerHTML = '' +
-          '<label for="visitBairroSelect">Bairro da visita</label>' +
-          '<select id="visitBairroSelect"><option value="">Todos os bairros</option></select>';
-        visitSelectedCard.parentNode.insertBefore(bairroSelect, visitSelectedCard);
+    var visitBairroField = document.getElementById('visitBairroSelect');
+    if (visitBairroField) {
+      var visitBairroWrapper = visitBairroField.closest('.field');
+      if (visitBairroWrapper) {
+        visitBairroWrapper.remove();
+      } else {
+        visitBairroField.remove();
       }
     }
 
-    if (!document.getElementById('propertyQuickSelect')) {
-      var selectedCard = document.getElementById('selectedPropertyCard');
-      if (selectedCard && selectedCard.parentNode) {
-        var quickSelect = document.createElement('div');
-        quickSelect.className = 'field';
-        quickSelect.style.marginBottom = '16px';
-        quickSelect.innerHTML = '' +
-          '<label for="propertyQuickSelect">Endereço da visita</label>' +
-          '<select id="propertyQuickSelect"><option value="">Selecione um imóvel cadastrado</option></select>' +
-          '<div class="field-help">A lista prioriza microárea, quarteirão, bairro e proximidade do agente.</div>';
-        selectedCard.parentNode.insertBefore(quickSelect, selectedCard);
+    var propertyQuickField = document.getElementById('propertyQuickSelect');
+    if (propertyQuickField) {
+      var propertyQuickWrapper = propertyQuickField.closest('.field');
+      if (propertyQuickWrapper) {
+        propertyQuickWrapper.remove();
+      } else {
+        propertyQuickField.remove();
       }
     }
 
@@ -1859,11 +1852,24 @@
     }
   };
 
+  app.enforceFixedViewport = function () {
+    var meta = document.querySelector('meta[name="viewport"]');
+    if (meta) {
+      meta.setAttribute('content', 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+    }
+  };
+
   app.preventGestureZoom = function () {
     var lastTouchEnd = 0;
 
     document.addEventListener('dblclick', function (event) {
       event.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('wheel', function (event) {
+      if (event.ctrlKey) {
+        event.preventDefault();
+      }
     }, { passive: false });
 
     document.addEventListener('gesturestart', function (event) {
@@ -1897,6 +1903,9 @@
       }
       lastTouchEnd = now;
     }, { passive: false });
+
+    document.documentElement.style.touchAction = 'pan-x pan-y';
+    document.body.style.touchAction = 'pan-x pan-y';
   };
 
   app.bindEvents = function () {
@@ -2081,6 +2090,7 @@
   };
 
   app.init = function () {
+    app.enforceFixedViewport();
     app.preventGestureZoom();
     app.ensureDynamicLayout();
     app.fillPropertyFormOptions();

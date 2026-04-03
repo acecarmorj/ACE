@@ -125,13 +125,32 @@
     var property = app.getSelectedProperty();
     var node = document.getElementById('selectedPropertyCard');
     if (!property) {
-      node.innerHTML = '<h3>Nenhum imóvel selecionado</h3><p>Abra a aba de imóveis, pesquise o endereço e toque em <strong>Visitar</strong>.</p>';
+      node.innerHTML = '' +
+        '<div class="inherited-visit-head">' +
+          '<strong>Nenhum imóvel selecionado</strong>' +
+          '<span>Abra a aba de imóveis, localize o cadastro desejado e toque em <strong>Visitar</strong> para trazer a residência completa para esta tela.</span>' +
+        '</div>';
       return;
     }
 
     var history = app.getVisitsForProperty(property);
     var last = history[0];
     var quality = app.computePropertyQuality(property, app.readProperties());
+    var referenceText = app.getPropertyReferenceText(property);
+    var addressText = [property.logradouro, property.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+    var situationText = last && (last.situacao === 'Fechado' || last.situacao === 'Recusa')
+      ? 'Pendência ativa para retorno.'
+      : 'Imóvel pronto para nova ação de campo.';
+    var summaryItems = [
+      { label: 'Morador', value: property.morador || 'Não informado' },
+      { label: 'Contato', value: property.telefone || 'Não informado' },
+      { label: 'Endereço', value: addressText },
+      { label: 'Bairro', value: property.bairro || 'Não informado' },
+      { label: 'Microárea', value: property.microarea || 'Não definida' },
+      { label: 'Quarteirão', value: property.quarteirao || 'Não definido' },
+      { label: 'Cadastro', value: [property.tipo || 'Não informado', property.complemento || 'Normal'].join(' • ') },
+      { label: 'Referência', value: referenceText || 'Sem referência complementar' }
+    ];
     var pills = [];
     pills.push('<span class="meta-pill">Bairro: ' + app.escapeHtml(property.bairro || '-') + '</span>');
     if (property.microarea || property.quarteirao) {
@@ -155,10 +174,21 @@
     }
 
     node.innerHTML = '' +
-      '<h3>' + app.escapeHtml(property.logradouro + ', ' + property.numero) + '</h3>' +
-      '<p>' + app.escapeHtml((property.morador || 'Morador não informado') + ' • ' + app.getPropertyReferenceText(property)) + '</p>' +
-      '<p style="margin-top:8px;color:#66727c">' + app.escapeHtml(last && (last.situacao === 'Fechado' || last.situacao === 'Recusa') ? 'Pendência ativa para retorno.' : 'Imóvel pronto para nova ação de campo.') + '</p>' +
-      '<div class="meta-pills">' + pills.join('') + '</div>';
+      '<div class="inherited-visit-head">' +
+        '<strong>' + app.escapeHtml(addressText) + '</strong>' +
+        '<span>Residência já vinculada à visita. Os dados cadastrais abaixo vieram da aba de imóveis.</span>' +
+      '</div>' +
+      '<div class="meta-pills">' + pills.join('') + '</div>' +
+      '<div class="inherited-visit-grid">' +
+        summaryItems.map(function (item) {
+          return '' +
+            '<div class="inherited-visit-item">' +
+              '<small>' + app.escapeHtml(item.label) + '</small>' +
+              '<strong>' + app.escapeHtml(item.value) + '</strong>' +
+            '</div>';
+        }).join('') +
+      '</div>' +
+      '<p style="margin-top:14px;color:#66727c">' + app.escapeHtml(situationText) + '</p>';
   };
 
   app.renderGpsStatus = function () {
@@ -882,6 +912,8 @@
         maxZoom: 19,
         attribution: '© OpenStreetMap'
       }).addTo(app.state.map);
+      app.state.map.setMinZoom(app.CONFIG.MAP_ZOOM);
+      app.state.map.setMaxZoom(app.CONFIG.MAP_ZOOM);
     }
 
     app.state.mapLayers.forEach(function (layer) {
@@ -943,16 +975,12 @@
       points.push([item.lat, item.lng]);
     });
 
-    app.state.map.setMinZoom(3);
-    app.state.map.setMaxZoom(19);
-
     if (points.length) {
-      app.state.map.fitBounds(points, { padding: [30, 30], maxZoom: 16 });
+      var center = L.latLngBounds(points).getCenter();
+      app.state.map.setView(center, app.CONFIG.MAP_ZOOM, { animate: false });
     } else {
-      app.state.map.setView(app.CONFIG.MAP_CENTER, app.CONFIG.MAP_ZOOM);
+      app.state.map.setView(app.CONFIG.MAP_CENTER, app.CONFIG.MAP_ZOOM, { animate: false });
     }
-    app.state.map.setMinZoom(app.state.map.getZoom());
-    app.state.map.setMaxZoom(app.state.map.getZoom());
     setTimeout(function () {
       app.state.map.invalidateSize();
     }, 120);
