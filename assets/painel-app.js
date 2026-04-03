@@ -39,6 +39,21 @@
     'ilha dos pombos light': 'ilha dos pombos',
     'morro do estado': 'ulisses lemgruber'
   };
+  var TERRITORY_MICROAREA_LABELS = {
+    'centro': 'M01 - Centro',
+    'boa ideia': 'M02 - Boa Ideia',
+    'botafogo': 'M03 - Botafogo',
+    'caixa dagua': "M04 - Caixa d'Água",
+    'jardim centenario': 'M05 - Jardim Centenário',
+    'ulisses lemgruber': 'M06 - Ulisses Lemgruber',
+    'progresso': 'M07 - Progresso',
+    'val paraiso': 'M08 - Val Paraíso',
+    'porto velho do cunha': 'PVC - Porto Velho do Cunha',
+    'barra de sao francisco': 'BSF - Barra de São Francisco',
+    'corrego da prata': 'CDP - Córrego da Prata',
+    'ilha dos pombos': 'IDP - Ilha dos Pombos (Light)',
+    'influencia': 'INF - Influência'
+  };
 
   var state = {
     source: 'local',
@@ -191,6 +206,11 @@
 
   function normalizeTerritoryCandidate(value) {
     return normalizeLabel(repairTextEncoding(value).replace(/^[A-Z0-9]{1,8}\s*-\s*/i, ''));
+  }
+
+  function getMicroareaLabelForTerritory(value) {
+    var normalized = normalizeTerritoryCandidate(value);
+    return TERRITORY_MICROAREA_LABELS[normalized] || '';
   }
 
   function getFeatureTerritoryName(feature) {
@@ -961,6 +981,20 @@
 
   function buildMicroareaQuarteiraoMap(rows) {
     var map = {};
+    (TERRITORY_SOURCE.polygons || []).forEach(function (feature) {
+      var territoryType = String(feature.territoryType || '').trim().toLowerCase();
+      var microarea = getMicroareaLabelForTerritory(getFeatureTerritoryName(feature));
+      var quarteirao = repairTextEncoding(feature.name || '').trim();
+      if (!microarea || territoryType === 'distrito') {
+        return;
+      }
+      if (!map[microarea]) {
+        map[microarea] = [];
+      }
+      if (quarteirao) {
+        map[microarea].push(quarteirao);
+      }
+    });
     rows.forEach(function (row) {
       var microarea = String(row.microarea || '').trim();
       var quarteirao = String(row.quarteirao || '').trim();
@@ -998,8 +1032,8 @@
     var current = getCurrentFilterValues();
     var rows = state.allVisits.concat(state.allProperties);
     var bairros = rows.map(function (row) { return row.bairro; });
-    var microareas = rows.map(function (row) { return row.microarea; });
     var areaMap = buildMicroareaQuarteiraoMap(rows);
+    var microareas = Object.keys(areaMap);
     var bairro = setSelectOptions(document.getElementById('bairroFilter'), bairros, 'Todos', current.bairro);
     var microarea = setSelectOptions(document.getElementById('microareaFilter'), microareas, 'Todas', current.microarea);
 

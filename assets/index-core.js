@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   'use strict';
 
   var app = window.ACSField = window.ACSField || {};
@@ -74,12 +74,12 @@
 
   app.CONFIG.MICROAREA_PRESETS = [
     { value: 'M01 - Centro', quarteiroes: app.rangeQuarteiroes(1, 23) },
-    { value: 'M02 - Boa Ideia', quarteiroes: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '9/01', '10', '11', '12', '13', '13/1', '14', '15'] },
+    { value: 'M02 - Boa Ideia', quarteiroes: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '9/1', '10', '11', '12', '13', '13/1', '14', '15'] },
     { value: 'M03 - Botafogo', quarteiroes: app.rangeQuarteiroes(1, 10) },
-    { value: 'M04 - Caixa d\'Água', quarteiroes: app.rangeQuarteiroes(1, 17) },
-    { value: 'M05 - Jardim Centenário', quarteiroes: app.rangeQuarteiroes(1, 22, ['1/01', '6/01', '17/01']) },
+    { value: "M04 - Caixa d'Água", quarteiroes: app.rangeQuarteiroes(1, 17) },
+    { value: 'M05 - Jardim Centenário', quarteiroes: app.rangeQuarteiroes(1, 19, ['1/1', '6/1', '17/1']) },
     { value: 'M06 - Ulisses Lemgruber', quarteiroes: app.rangeQuarteiroes(1, 12) },
-    { value: 'M07 - Progresso', quarteiroes: app.rangeQuarteiroes(1, 13) },
+    { value: 'M07 - Progresso', quarteiroes: app.rangeQuarteiroes(1, 12, ['1/1']) },
     { value: 'M08 - Val Paraíso', quarteiroes: app.rangeQuarteiroes(1, 5) },
     { value: 'PVC - Porto Velho do Cunha', quarteiroes: app.rangeQuarteiroes(1, 15) },
     { value: 'BSF - Barra de São Francisco', quarteiroes: app.rangeQuarteiroes(1, 15) },
