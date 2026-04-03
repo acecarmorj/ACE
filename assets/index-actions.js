@@ -122,18 +122,13 @@
       }
     }
 
-    if (!document.getElementById('visitInheritedInfo')) {
-      var visitTime = document.getElementById('visitTime');
-      var dateGrid = visitTime ? visitTime.closest('.grid') : null;
-      if (dateGrid && dateGrid.parentNode) {
-        var inheritedField = document.createElement('div');
-        inheritedField.className = 'field inherited-field';
-        inheritedField.style.marginTop = '16px';
-        inheritedField.innerHTML = '' +
-          '<label>Dados herdados do imóvel</label>' +
-          '<div id="visitInheritedInfo" class="inherited-visit-box"></div>' +
-          '<div class="field-help">Ao selecionar um imóvel, morador, endereço, bairro, microárea e quarteirão vêm automaticamente do cadastro. Nesta tela você preenche só os dados da visita.</div>';
-        dateGrid.parentNode.insertBefore(inheritedField, dateGrid.nextSibling);
+    var inheritedVisitField = document.getElementById('visitInheritedInfo');
+    if (inheritedVisitField) {
+      var inheritedVisitWrapper = inheritedVisitField.closest('.inherited-field') || inheritedVisitField.closest('.field');
+      if (inheritedVisitWrapper) {
+        inheritedVisitWrapper.remove();
+      } else {
+        inheritedVisitField.remove();
       }
     }
 

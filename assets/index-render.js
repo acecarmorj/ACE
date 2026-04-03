@@ -126,9 +126,9 @@
     var node = document.getElementById('selectedPropertyCard');
     if (!property) {
       node.innerHTML = '' +
-        '<div class="inherited-visit-head">' +
+        '<div class="selected-card-top">' +
           '<strong>Nenhum imóvel selecionado</strong>' +
-          '<span>Abra a aba de imóveis, localize o cadastro desejado e toque em <strong>Visitar</strong> para trazer a residência completa para esta tela.</span>' +
+          '<span>Abra a aba de imóveis, localize o cadastro desejado e toque em <strong>Visitar</strong> para trazer a residência para esta tela.</span>' +
         '</div>';
       return;
     }
@@ -138,31 +138,23 @@
     var quality = app.computePropertyQuality(property, app.readProperties());
     var referenceText = app.getPropertyReferenceText(property);
     var addressText = [property.logradouro, property.numero].filter(Boolean).join(', ') || 'Endereço não informado';
+    var territoryText = [
+      property.bairro || 'Bairro não informado',
+      property.microarea ? 'MA ' + property.microarea : '',
+      property.quarteirao ? 'Q ' + property.quarteirao : ''
+    ].filter(Boolean).join(' • ');
+    var cadastroText = [property.tipo || 'Não informado', property.complemento || 'Normal'].join(' • ');
     var situationText = last && (last.situacao === 'Fechado' || last.situacao === 'Recusa')
       ? 'Pendência ativa para retorno.'
       : 'Imóvel pronto para nova ação de campo.';
     var summaryItems = [
       { label: 'Morador', value: property.morador || 'Não informado' },
       { label: 'Contato', value: property.telefone || 'Não informado' },
-      { label: 'Endereço', value: addressText },
-      { label: 'Bairro', value: property.bairro || 'Não informado' },
-      { label: 'Microárea', value: property.microarea || 'Não definida' },
-      { label: 'Quarteirão', value: property.quarteirao || 'Não definido' },
-      { label: 'Cadastro', value: [property.tipo || 'Não informado', property.complemento || 'Normal'].join(' • ') },
+      { label: 'Território', value: territoryText || 'Não definido' },
+      { label: 'Cadastro', value: cadastroText },
       { label: 'Referência', value: referenceText || 'Sem referência complementar' }
     ];
     var pills = [];
-    pills.push('<span class="meta-pill">Bairro: ' + app.escapeHtml(property.bairro || '-') + '</span>');
-    if (property.microarea || property.quarteirao) {
-      pills.push('<span class="meta-pill">MA ' + app.escapeHtml(property.microarea || '-') + ' • Q ' + app.escapeHtml(property.quarteirao || '-') + '</span>');
-    }
-    pills.push('<span class="meta-pill">Tipo: ' + app.escapeHtml(property.tipo || '-') + '</span>');
-    if (property.complemento) {
-      pills.push('<span class="meta-pill">Complemento: ' + app.escapeHtml(property.complemento) + '</span>');
-    }
-    if (property.telefone) {
-      pills.push('<span class="meta-pill">Contato: ' + app.escapeHtml(property.telefone) + '</span>');
-    }
     if (last) {
       pills.push('<span class="status-pill ' + (last.focusFound === 'Sim' ? 'is-danger' : 'is-ok') + '">Última visita: ' + app.escapeHtml(app.formatDateBR(last.data)) + ' ' + app.escapeHtml(last.hora) + '</span>');
     }
@@ -174,21 +166,20 @@
     }
 
     node.innerHTML = '' +
-      '<div class="inherited-visit-head">' +
+      '<div class="selected-card-top">' +
         '<strong>' + app.escapeHtml(addressText) + '</strong>' +
-        '<span>Residência já vinculada à visita. Os dados cadastrais abaixo vieram da aba de imóveis.</span>' +
+        '<span>' + app.escapeHtml(situationText) + '</span>' +
       '</div>' +
-      '<div class="meta-pills">' + pills.join('') + '</div>' +
-      '<div class="inherited-visit-grid">' +
+      '<div class="selected-card-grid">' +
         summaryItems.map(function (item) {
           return '' +
-            '<div class="inherited-visit-item">' +
+            '<div class="selected-card-item">' +
               '<small>' + app.escapeHtml(item.label) + '</small>' +
               '<strong>' + app.escapeHtml(item.value) + '</strong>' +
             '</div>';
         }).join('') +
       '</div>' +
-      '<p style="margin-top:14px;color:#66727c">' + app.escapeHtml(situationText) + '</p>';
+      (pills.length ? '<div class="meta-pills selected-card-pills">' + pills.join('') + '</div>' : '');
   };
 
   app.renderGpsStatus = function () {
