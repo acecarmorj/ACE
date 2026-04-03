@@ -99,10 +99,10 @@
     'Val Paraíso': 'M08 - Val Paraíso',
     'Morro do Estado': 'M06 - Ulisses Lemgruber',
     'Porto Velho do Cunha': 'PVC - Porto Velho do Cunha',
-    'Barra de SÃ£o Francisco': 'BSF - Barra de SÃ£o Francisco',
-    'CÃ³rrego da Prata': 'CDP - CÃ³rrego da Prata',
+    'Barra de São Francisco': 'BSF - Barra de São Francisco',
+    'Córrego da Prata': 'CDP - Córrego da Prata',
     'Ilha dos Pombos': 'IDP - Ilha dos Pombos',
-    'InfluÃªncia': 'INF - InfluÃªncia'
+    'Influência': 'INF - Influência'
   };
 
   app.STORAGE_KEYS = {
