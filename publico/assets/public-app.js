@@ -392,17 +392,11 @@
   }
 
   function ensurePublicMapControls() {
-    var filterRow = document.querySelector('.toolbar .filter-row');
     var legend = document.querySelector('.map-legend');
+    var metricMode = document.getElementById('publicMetricMode');
 
-    if (filterRow && !document.getElementById('publicMetricMode')) {
-      filterRow.insertAdjacentHTML('beforeend',
-        '<select id="publicMetricMode" class="filter-select">' +
-          '<option value="combined">Sem&aacute;foro: combina&ccedil;&atilde;o territorial</option>' +
-          '<option value="focus">Sem&aacute;foro: focos</option>' +
-          '<option value="depositFocus">Sem&aacute;foro: dep&oacute;sitos com foco</option>' +
-          '<option value="infestation">Sem&aacute;foro: taxa de infesta&ccedil;&atilde;o</option>' +
-        '</select>');
+    if (metricMode) {
+      metricMode.remove();
     }
 
     if (legend && !legend.getAttribute('data-public-privacy-ready')) {
@@ -428,20 +422,6 @@
       });
     });
 
-    if (document.getElementById('areaFilter')) {
-      document.getElementById('areaFilter').addEventListener('change', function (event) {
-        state.area = event.target.value;
-        applyFilterAndRender();
-      });
-    }
-
-    if (document.getElementById('publicMetricMode')) {
-      document.getElementById('publicMetricMode').value = state.territoryMetricMode;
-      document.getElementById('publicMetricMode').addEventListener('change', function (event) {
-        state.territoryMetricMode = String(event.target.value || 'combined');
-        renderMap(buildSummary(state.filteredVisits));
-      });
-    }
   }
 
   function syncRangeButtons() {

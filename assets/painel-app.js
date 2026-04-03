@@ -859,19 +859,8 @@
       }
     }
 
-    if (heatMapNode && !document.getElementById('territoryMapControls')) {
-      heatMapNode.insertAdjacentHTML('beforebegin', '' +
-        '<div id="territoryMapControls" class="map-toolbar">' +
-          '<label class="map-toggle"><input id="togglePolygonLayer" type="checkbox" checked> Quarteirões KMZ</label>' +
-          '<label class="map-toggle"><input id="toggleHeatLayer" type="checkbox" checked> Calor territorial</label>' +
-          '<label class="map-toggle"><input id="toggleVisitMarkers" type="checkbox" checked> Marcadores de visitas</label>' +
-          '<label class="map-toggle"><input id="togglePointLayer" type="checkbox"> Marcadores KMZ</label>' +
-          '<label class="map-toggle"><input id="toggleOpenMarkers" type="checkbox" checked> Aberto / visitado</label>' +
-          '<label class="map-toggle"><input id="toggleClosedMarkers" type="checkbox" checked> Fechado / recusado</label>' +
-          '<label class="map-toggle"><input id="toggleRecoveredMarkers" type="checkbox" checked> Recuperado</label>' +
-          '<label class="map-toggle map-select-toggle"><span>Semáforo</span><select id="territoryMetricMode"><option value="combined">Combinação territorial</option><option value="focus">Focos</option><option value="depositFocus">Depósitos com foco</option><option value="infestation">Taxa de infestação</option></select></label>' +
-        '</div>' +
-        '<div id="territoryMapSummary" class="territory-summary">Base cartográfica pronta para destacar quarteirões, distritos, semáforo territorial e status das visitas no mesmo mapa.</div>');
+    if (document.getElementById('territoryMapControls')) {
+      document.getElementById('territoryMapControls').remove();
     }
     if (document.getElementById('territoryMapSummary')) {
       document.getElementById('territoryMapSummary').textContent = 'Base cartográfica pronta para destacar quarteirões, distritos, semáforo territorial e status das visitas no mesmo mapa.';
@@ -2201,32 +2190,6 @@
     document.getElementById('reportIndividualBtn').addEventListener('click', function () { openReport('individual'); });
     if (document.getElementById('clearDrilldownBtn')) {
       document.getElementById('clearDrilldownBtn').addEventListener('click', clearDrilldown);
-    }
-    [
-      { id: 'toggleHeatLayer', key: 'heat' },
-      { id: 'toggleVisitMarkers', key: 'visits' },
-      { id: 'toggleOpenMarkers', key: 'visitOpen' },
-      { id: 'toggleClosedMarkers', key: 'visitClosed' },
-      { id: 'toggleRecoveredMarkers', key: 'visitRecovered' },
-      { id: 'togglePolygonLayer', key: 'polygons' },
-      { id: 'togglePointLayer', key: 'points' }
-    ].forEach(function (item) {
-      var input = document.getElementById(item.id);
-      if (!input) {
-        return;
-      }
-      input.checked = !!state.mapToggles[item.key];
-      input.addEventListener('change', function () {
-        state.mapToggles[item.key] = !!input.checked;
-        renderHeatMap(state.filteredVisits);
-      });
-    });
-    if (document.getElementById('territoryMetricMode')) {
-      document.getElementById('territoryMetricMode').value = getTerritoryMetricMode();
-      document.getElementById('territoryMetricMode').addEventListener('change', function (event) {
-        state.territoryMetricMode = String(event.target.value || 'combined');
-        renderHeatMap(state.filteredVisits);
-      });
     }
     ['bairroFilter', 'microareaFilter', 'quarteiraoFilter', 'logradouroFilter', 'agentFilter', 'dateStart', 'dateEnd'].forEach(function (id) {
       if (document.getElementById(id)) {
