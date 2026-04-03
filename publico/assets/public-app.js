@@ -392,8 +392,6 @@
 
   function ensurePublicMapControls() {
     var filterRow = document.querySelector('.toolbar .filter-row');
-    var toolbar = document.querySelector('.toolbar');
-    var mapCard = document.querySelector('.map-card');
     var legend = document.querySelector('.map-legend');
 
     if (filterRow && !document.getElementById('publicMetricMode')) {
@@ -406,28 +404,12 @@
         '</select>');
     }
 
-    if (toolbar && mapCard && !document.getElementById('publicMapToolbar')) {
-      toolbar.insertAdjacentHTML('afterend',
-        '<div id="publicMapToolbar" class="public-map-toolbar">' +
-          '<label class="public-map-toggle"><input id="togglePublicPolygons" type="checkbox" checked> Quarteir&otilde;es</label>' +
-          '<label class="public-map-toggle"><input id="togglePublicHeat" type="checkbox" checked> Calor territorial</label>' +
-          '<label class="public-map-toggle"><input id="togglePublicMarkers" type="checkbox" checked> Marcadores agregados</label>' +
-          '<label class="public-map-toggle"><input id="togglePublicOpen" type="checkbox" checked> Aberto/visitado</label>' +
-          '<label class="public-map-toggle"><input id="togglePublicClosed" type="checkbox" checked> Fechado/recusado</label>' +
-          '<label class="public-map-toggle"><input id="togglePublicRecovered" type="checkbox" checked> Recuperado</label>' +
-        '</div>');
-    }
-
     if (legend && !legend.getAttribute('data-public-privacy-ready')) {
       legend.setAttribute('data-public-privacy-ready', 'true');
       legend.innerHTML =
         '<span><i class="map-legend-dot is-low"></i> quarteir&atilde;o verde: sem foco</span>' +
         '<span><i class="map-legend-dot is-medium"></i> quarteir&atilde;o amarelo: aten&ccedil;&atilde;o</span>' +
-        '<span><i class="map-legend-dot is-high"></i> quarteir&atilde;o vermelho: cr&iacute;tico</span>' +
-        '<span><i class="map-legend-dot is-accent"></i> marcador azul: aberto/visitado</span>' +
-        '<span><i class="map-legend-dot is-medium"></i> marcador amarelo: fechado/recusado</span>' +
-        '<span><i class="map-legend-dot is-low"></i> marcador verde: recuperado</span>' +
-        '<span><i class="map-legend-dot is-heat"></i> calor territorial agregado</span>';
+        '<span><i class="map-legend-dot is-high"></i> quarteir&atilde;o vermelho: cr&iacute;tico</span>';
     }
   }
 
@@ -459,25 +441,6 @@
         renderMap(buildSummary(state.filteredVisits));
       });
     }
-
-    [
-      { id: 'togglePublicPolygons', key: 'polygons' },
-      { id: 'togglePublicHeat', key: 'heat' },
-      { id: 'togglePublicMarkers', key: 'markers' },
-      { id: 'togglePublicOpen', key: 'open' },
-      { id: 'togglePublicClosed', key: 'closed' },
-      { id: 'togglePublicRecovered', key: 'recovered' }
-    ].forEach(function (item) {
-      var input = document.getElementById(item.id);
-      if (!input) {
-        return;
-      }
-      input.checked = !!state.mapToggles[item.key];
-      input.addEventListener('change', function () {
-        state.mapToggles[item.key] = !!input.checked;
-        renderMap(buildSummary(state.filteredVisits));
-      });
-    });
   }
 
   function syncRangeButtons() {
@@ -1127,34 +1090,11 @@
     }).join('');
   }
 
-  function buildPublicHeatBuckets(quarters, mode) {
-    var buckets = { low: [], medium: [], high: [] };
-    (quarters || []).forEach(function (item) {
-      var risk;
-      var toneKey;
-      var value;
-      var weight;
-      if (!item.point) {
-        return;
-      }
-      risk = getPublicQuarterRisk(item, mode);
-      toneKey = risk.level === 'critico' ? 'high' : risk.level === 'atencao' ? 'medium' : 'low';
-      value = getPublicMetricValue(item, mode);
-      weight = mode === 'infestation'
-        ? utils.clamp(value / 12, 0.25, 4)
-        : utils.clamp(Math.max(value, item.visits * 0.35, 0.25), 0.25, 8);
-      buckets[toneKey].push([item.point[0], item.point[1], weight]);
-    });
-    return buckets;
-  }
-
   function renderMap(summary) {
     var areaSummary = {};
-    var quarterData = {};
     var boundsPoints = [];
     var mode = state.territoryMetricMode || 'combined';
     var metricMeta = getPublicMetricMeta(mode);
-    var heatBuckets;
 
     if (!state.map) {
       initMap();
@@ -1174,111 +1114,45 @@
     summary.topAreas.forEach(function (item) {
       areaSummary[item.area] = item;
     });
-    summary.topQuarters.forEach(function (item) {
-      quarterData[item.area + '|' + item.quarter] = item;
-    });
 
     state.polygonLayer = L.layerGroup();
-    if (state.mapToggles.polygons) {
-      territoryModel.polygons.forEach(function (polygon) {
-        var quarterKey;
-        var detail;
-        var risk;
-        var metricValue;
-        var popupLines;
-        var layer;
-        if (state.area !== 'TODOS' && polygon.folder !== state.area) {
-          return;
-        }
-        quarterKey = polygon.folder + '|' + polygon.quarter;
-        detail = quarterData[quarterKey] || areaSummary[polygon.folder] || null;
-        risk = getPublicQuarterRisk(detail, mode);
-        metricValue = getPublicMetricValue(detail, mode);
-        layer = L.polygon(polygon.coordinates, {
-          color: risk.stroke,
-          weight: detail ? 1.8 : 1.1,
-          fillColor: risk.fill,
-          fillOpacity: detail ? Math.max(risk.opacity, 0.26) : 0.12
-        });
-        popupLines = [
-          '<strong>' + escapeHtml(utils.titleCase(polygon.folderLabel)) + (polygon.quarterLabel ? ' - ' + escapeHtml(polygon.quarterLabel) : '') + '</strong>',
-          'Classificação: ' + risk.label,
-          metricMeta.label + ': ' + formatPublicMetricValue(metricValue, mode)
-        ];
-        if (detail) {
-          popupLines.push('Visitas públicas agregadas: ' + detail.visits);
-          popupLines.push('Depósitos com foco: ' + detail.depositFocus);
-          popupLines.push('Este recorte representa o território, não um endereço individual.');
-        } else {
-          popupLines.push('Sem sinal público relevante no recorte atual.');
-        }
-        layer.bindPopup(popupLines.join('<br>'));
-        state.polygonLayer.addLayer(layer);
-        if (polygon.centroid && polygon.centroid.length === 2) {
-          boundsPoints.push([polygon.centroid[0], polygon.centroid[1]]);
-        }
+    territoryModel.polygons.forEach(function (polygon) {
+      var detail;
+      var risk;
+      var metricValue;
+      var popupLines;
+      var layer;
+      if (state.area !== 'TODOS' && polygon.folder !== state.area) {
+        return;
+      }
+      detail = areaSummary[polygon.folder] || null;
+      risk = getPublicQuarterRisk(detail, mode);
+      metricValue = getPublicMetricValue(detail, mode);
+      layer = L.polygon(polygon.coordinates, {
+        color: risk.stroke,
+        weight: detail ? 1.6 : 1.05,
+        fillColor: risk.fill,
+        fillOpacity: detail ? Math.max(risk.opacity, 0.22) : 0.1
       });
-      state.polygonLayer.addTo(state.map);
-    }
-
-    heatBuckets = buildPublicHeatBuckets(summary.topQuarters.filter(function (item) {
-      return state.area === 'TODOS' || item.area === state.area;
-    }), mode);
-    state.heatLayer = L.layerGroup();
-    if (state.mapToggles.heat) {
-      ['low', 'medium', 'high'].forEach(function (toneKey) {
-        var entries = heatBuckets[toneKey] || [];
-        if (!entries.length) {
-          return;
-        }
-        state.heatLayer.addLayer(L.heatLayer(entries, Object.assign({
-          radius: 34,
-          blur: 30,
-          maxZoom: 16,
-          minOpacity: 0.22
-        }, getPublicHeatPalette(toneKey))));
-        entries.forEach(function (entry) {
-          boundsPoints.push([entry[0], entry[1]]);
-        });
-      });
-      state.heatLayer.addTo(state.map);
-    }
-
-    state.pointLayer = L.layerGroup();
-    if (state.mapToggles.markers) {
-      summary.publicMarkers.forEach(function (item) {
-        var marker;
-        if ((state.area !== 'TODOS' && item.area !== state.area) || !state.mapToggles[item.toneKey]) {
-          return;
-        }
-        marker = L.circleMarker([item.lat, item.lng], {
-          pane: 'publicVisitPane',
-          radius: item.toneKey === 'open' ? 6.25 : 6.75,
-          color: item.markerStroke || '#163728',
-          weight: 2,
-          fillColor: item.markerFill || '#2f7a52',
-          fillOpacity: 0.95
-        });
-        marker.bindPopup([
-          '<strong>Indicador público agregado</strong>',
-          '<br>',
-          escapeHtml(utils.titleCase(item.area || 'Território não informado')),
-          item.quarter ? '<br>Q ' + escapeHtml(item.quarter) : '',
-          '<br>',
-          escapeHtml('Situação representada: ' + (item.statusLabel || '-')),
-          '<br>',
-          escapeHtml(item.visits + ' lançamento(s) agregados no recorte'),
-          '<br>',
-          escapeHtml('Leitura territorial sem endereço individual')
-        ].join(''));
-        state.pointLayer.addLayer(marker);
-        boundsPoints.push([item.lat, item.lng]);
-      });
-      state.pointLayer.addTo(state.map);
-    }
-    if (state.pointLayer.bringToFront) {
-      state.pointLayer.bringToFront();
-    }
+      popupLines = [
+        '<strong>' + escapeHtml(utils.titleCase(polygon.folderLabel || polygon.folder || 'Território')) + '</strong>',
+        'Classificação: ' + risk.label,
+        metricMeta.label + ': ' + formatPublicMetricValue(metricValue, mode)
+      ];
+      if (detail) {
+        popupLines.push('Visitas públicas agregadas: ' + detail.visits);
+        popupLines.push('Depósitos com foco: ' + detail.depositFocus);
+        popupLines.push('Leitura territorial por bairro/área, sem endereço individual.');
+      } else {
+        popupLines.push('Sem sinal público relevante no recorte atual.');
+      }
+      layer.bindPopup(popupLines.join('<br>'));
+      state.polygonLayer.addLayer(layer);
+      if (polygon.centroid && polygon.centroid.length === 2) {
+        boundsPoints.push([polygon.centroid[0], polygon.centroid[1]]);
+      }
+    });
+    state.polygonLayer.addTo(state.map);
 
     if (boundsPoints.length) {
       state.map.fitBounds(boundsPoints, { padding: [24, 24], maxZoom: 14 });
@@ -1287,8 +1161,8 @@
     }
 
     document.getElementById('mapNote').textContent = summary.topAreas[0]
-      ? 'Maior atenção atual: ' + utils.titleCase(summary.topAreas[0].area) + '. Semáforo em ' + metricMeta.label.toLowerCase() + ', marcadores agregados por território e nenhum endereço individual exposto.'
-      : 'O mapa está em modo informativo. Assim que houver registros públicos no período, o território aparecerá aqui de forma agregada e segura.';
+      ? 'Maior atenção atual: ' + utils.titleCase(summary.topAreas[0].area) + '. O mapa público mostra apenas polígonos territoriais coloridos por ' + metricMeta.label.toLowerCase() + '.'
+      : 'O mapa está em modo informativo. Assim que houver registros públicos no período, os territórios aparecerão aqui de forma agregada e segura.';
   }
 
   function initMap() {
