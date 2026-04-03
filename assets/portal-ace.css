@@ -37,6 +37,7 @@ body.portal-page.compact{
 }
 
 .portal-box{
+  position:relative;
   width:min(760px,100%);
   padding:34px 30px 30px;
   border-radius:32px;
@@ -45,6 +46,31 @@ body.portal-page.compact{
     linear-gradient(180deg, rgba(20,31,25,.96), rgba(14,22,18,.98)),
     radial-gradient(circle at top right, rgba(62,154,104,.08), transparent 30%);
   box-shadow:var(--shadow);
+}
+
+.portal-exit{
+  position:absolute;
+  top:18px;
+  right:18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:8px 14px;
+  border-radius:999px;
+  text-decoration:none;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  color:#d9e9df;
+  font-size:.88rem;
+  font-weight:800;
+  transition:background .16s ease, border-color .16s ease, transform .16s ease;
+}
+
+.portal-exit:hover{
+  background:rgba(255,255,255,.10);
+  border-color:rgba(255,255,255,.18);
+  transform:translateY(-1px);
 }
 
 .portal-tag{
@@ -135,7 +161,7 @@ body.portal-page.compact{
 
 @media (max-width: 720px){
   .portal-box{
-    padding:24px 18px 18px;
+    padding:56px 18px 18px;
     border-radius:26px;
   }
 
